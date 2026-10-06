@@ -138,7 +138,47 @@ def confusion(metrics: dict, key: str) -> None:
     _save(fig, f"confusion_{key}.png")
 
 
+def architecture() -> None:
+    """System diagram: inputs -> text extraction -> clause splitting -> model + rules -> risk score -> report."""
+    from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
+
+    fig, ax = plt.subplots(figsize=(10, 3.1), dpi=200)
+    fig.patch.set_facecolor(SURFACE)
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 31)
+    ax.axis("off")
+
+    def box(x, y, w, h, title, body, fill="#ffffff", edge=AXIS, title_color=INK):
+        ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.25,rounding_size=1.2",
+                                    linewidth=1.2, edgecolor=edge, facecolor=fill))
+        ax.text(x + w / 2, y + h - 2.6, title, ha="center", va="top", fontsize=8.5, fontweight="bold", color=title_color)
+        ax.text(x + w / 2, y + h - 6.4, body, ha="center", va="top", fontsize=6.8, color=INK_2, linespacing=1.45)
+
+    def arrow(x1, y1, x2, y2):
+        ax.add_patch(FancyArrowPatch((x1, y1), (x2, y2), arrowstyle="-|>", mutation_scale=10, color=MUTED, linewidth=1.2))
+
+    box(0.5, 4, 14, 23, "Inputs", "PDF / scanned PDF\nWord (.docx)\nPhotos (multi-page)\nCamera\nWeb link\nPasted text")
+    box(19, 4, 14, 23, "Text extraction", "PyMuPDF text layer\nRapidOCR for scans\n& photos\npython-docx\ntrafilatura (links)")
+    box(36.5, 4, 15, 23, "Clause splitting", "Sentences &\nnumbered items;\nheadings dropped")
+    box(55, 17, 17, 12.5, "Trained classifier", "TF-IDF + LogReg / SVM\nor DistilBERT\n9 classes", fill="#eef0ff", edge="#3a3fd1", title_color="#3a3fd1")
+    box(55, 1.5, 17, 12.5, "Rule checks", "auto-renewal, fees,\ndata sharing, bond,\ndeposit forfeiture")
+    box(76.5, 4, 10, 23, "Risk score", "severity ×\nconfidence\n\n0–100\nLow / Med /\nHigh")
+    box(90.5, 4, 9, 23, "Report", "highlighted\nclauses +\nplain-English\nreasons")
+
+    arrow(15, 15.5, 18.6, 15.5)
+    arrow(33.5, 15.5, 36.1, 15.5)
+    arrow(52, 17, 54.6, 22)
+    arrow(52, 14, 54.6, 8)
+    arrow(72.5, 22, 76.1, 17.5)
+    arrow(72.5, 8, 76.1, 13.5)
+    arrow(87, 15.5, 90.1, 15.5)
+    FIG_DIR.mkdir(parents=True, exist_ok=True)
+    fig.savefig(FIG_DIR / "architecture.png", facecolor=SURFACE, bbox_inches="tight")
+    plt.close(fig)
+
+
 def main() -> None:
+    architecture()
     metrics = json.loads(METRICS_PATH.read_text())
     model_comparison(metrics)
     per_class_f1(metrics)
