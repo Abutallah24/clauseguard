@@ -31,8 +31,10 @@
   --doc: "Source Serif 4", Georgia, "Times New Roman", serif;
 }
 
-html, body, [data-testid="stAppViewContainer"], [data-testid="stSidebar"], button, input, textarea {
-  font-family: var(--ui) !important;
+html, body, [data-testid="stAppViewContainer"], [data-testid="stSidebar"],
+.stApp p, .stApp li, .stApp label, .stApp input, .stApp textarea, .stApp button, .stApp td, .stApp th,
+.stApp [data-testid="stMarkdownContainer"], .stApp [data-testid="stCaptionContainer"] {
+  font-family: var(--ui);
   color: var(--ink);
 }
 [data-testid="stAppViewContainer"] { background: var(--plane); }
@@ -41,10 +43,9 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stSidebar"], butto
 
 /* ---------- type ---------- */
 h1, h2, h3 { font-family: var(--ui) !important; color: var(--ink) !important; }
-.cg-title { font-size: 2.6rem; font-weight: 300; letter-spacing: -0.04em; line-height: 1.05; margin: 0 0 .4rem; }
-.cg-title strong { font-weight: 600; }
+.stApp h1.cg-title, h1.cg-title { font-size: 2.7rem; font-weight: 300; letter-spacing: -0.045em; line-height: 1.08; margin: 0 0 .5rem; padding: 0; }
 .cg-lede { font-size: 1.05rem; color: var(--ink-2); max-width: 62ch; line-height: 1.55; margin: 0 0 1.6rem; }
-.cg-h2 { font-size: 1.35rem; font-weight: 600; letter-spacing: -0.02em; margin: 2rem 0 .75rem; }
+.stApp h2.cg-h2, h2.cg-h2 { font-size: 1.3rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1.3; margin: 2rem 0 .75rem; padding: 0; }
 .cg-note { font-size: .875rem; color: var(--ink-mute); line-height: 1.5; }
 
 /* ---------- sidebar ---------- */
@@ -58,8 +59,10 @@ h1, h2, h3 { font-family: var(--ui) !important; color: var(--ink) !important; }
   transition: background .15s ease, border-color .15s ease;
 }
 .stButton > button[kind="primary"], .stDownloadButton > button[kind="primary"] {
-  background: var(--accent); border-color: var(--accent); color: #fff;
+  background: var(--accent); border-color: var(--accent);
 }
+.stApp button[kind="primary"], .stApp button[kind="primary"] p { color: #fff; }
+.stApp button[kind="primary"]:disabled { background: #c9cdf3; border-color: #c9cdf3; }
 .stButton > button[kind="primary"]:hover { background: #2e2b8c; border-color: #2e2b8c; }
 .stButton > button:focus-visible, .stDownloadButton > button:focus-visible, a:focus-visible {
   outline: 3px solid var(--accent) !important; outline-offset: 2px;
@@ -163,3 +166,10 @@ textarea, [data-baseweb="input"] { border-radius: var(--radius-s) !important; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* Keep the document's serif face and ink colour even inside Streamlit's markdown containers. */
+.stApp .cg-doc p, .cg-doc p { font-family: var(--doc); color: #1d2b3a; font-size: 1.02rem; line-height: 1.75; }
+.stApp .cg-finding blockquote, .cg-finding blockquote { font-family: var(--doc); color: #1d2b3a; border-left: 0; padding-left: 0; opacity: 1; }
+.stApp .cg-issue p, .cg-issue p { color: var(--ink-2); font-size: .92rem; }
+.cg-cat .count, .cg-cat span { color: var(--ink); }
+.cg-cat .count { color: var(--ink-mute); }

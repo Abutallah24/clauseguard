@@ -23,7 +23,7 @@ main {{ max-width: 900px; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; display:
 </style></head>
 <body><main>
 <header>
-  <h1 class="cg-title">ClauseGuard <strong>risk report</strong></h1>
+  <h1 class="cg-title">ClauseGuard risk report</h1>
   <p class="cg-lede">Source: {escape(source_name)}<br>Model: {escape(DISPLAY_NAMES.get(result.model_key, result.model_key))}<br>Generated: {generated}</p>
 </header>
 {verdict_html(result)}

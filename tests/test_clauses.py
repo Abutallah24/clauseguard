@@ -29,5 +29,18 @@ def test_wrapped_lines_are_joined():
     ]
 
 
+def test_heading_lines_are_not_merged_into_the_clause():
+    text = (
+        "4. Changes to These Terms\n"
+        "We may modify these Terms at any time and at our sole discretion.\n"
+        "Termination\n"
+        "We may suspend your account at any time without notice."
+    )
+    assert split_clauses(text) == [
+        "We may modify these Terms at any time and at our sole discretion.",
+        "We may suspend your account at any time without notice.",
+    ]
+
+
 def test_empty_text_gives_no_clauses():
     assert split_clauses("   \n  ") == []

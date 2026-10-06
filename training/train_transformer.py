@@ -12,7 +12,7 @@ import numpy as np
 import torch
 from sklearn.metrics import f1_score
 from sklearn.utils.class_weight import compute_class_weight
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, Dataset
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, get_linear_schedule_with_warmup
 
 from src.labels import LABELS
@@ -29,19 +29,39 @@ LR = 5e-5
 SEED = 42
 
 
-def encode(tokenizer, texts, labels=None):
-    enc = tokenizer(list(texts), truncation=True, max_length=MAX_LEN, padding="max_length", return_tensors="pt")
-    tensors = [enc["input_ids"], enc["attention_mask"]]
-    if labels is not None:
-        tensors.append(torch.tensor(list(labels), dtype=torch.long))
-    return TensorDataset(*tensors)
+class ClauseDataset(Dataset):
+    """Tokenised sentences (no padding yet); padding happens per batch in `collate`."""
+
+    def __init__(self, tokenizer, texts, labels=None):
+        self.ids = tokenizer(list(texts), truncation=True, max_length=MAX_LEN)["input_ids"]
+        self.labels = list(labels) if labels is not None else [0] * len(self.ids)
+
+    def __len__(self):
+        return len(self.ids)
+
+    def __getitem__(self, i):
+        return self.ids[i], self.labels[i]
+
+
+def make_collate(pad_id: int):
+    def collate(batch):
+        # Dynamic padding: pad only to the longest sentence in this batch (avg ~45 tokens, not 128).
+        width = max(len(ids) for ids, _ in batch)
+        input_ids = torch.full((len(batch), width), pad_id, dtype=torch.long)
+        mask = torch.zeros((len(batch), width), dtype=torch.long)
+        for row, (ids, _) in enumerate(batch):
+            input_ids[row, : len(ids)] = torch.tensor(ids)
+            mask[row, : len(ids)] = 1
+        return input_ids, mask, torch.tensor([label for _, label in batch], dtype=torch.long)
+
+    return collate
 
 
 @torch.no_grad()
-def predict(model, dataset) -> np.ndarray:
+def predict(model, dataset, collate) -> np.ndarray:
     model.eval()
     preds = []
-    for input_ids, mask, *_ in DataLoader(dataset, batch_size=64):
+    for input_ids, mask, _ in DataLoader(dataset, batch_size=64, collate_fn=collate):
         preds.append(model(input_ids=input_ids, attention_mask=mask).logits.argmax(-1).numpy())
     return np.concatenate(preds)
 
@@ -64,9 +84,11 @@ def main() -> None:
         label2id={l: i for i, l in enumerate(LABELS)},
     )
 
-    train_ds = encode(tokenizer, x_train, y_train)
-    val_ds, test_ds = encode(tokenizer, val["text"]), encode(tokenizer, test["text"])
-    loader = DataLoader(train_ds, batch_size=BATCH, shuffle=True, generator=torch.Generator().manual_seed(SEED))
+    collate = make_collate(tokenizer.pad_token_id)
+    train_ds = ClauseDataset(tokenizer, x_train, y_train)
+    val_ds, test_ds = ClauseDataset(tokenizer, val["text"]), ClauseDataset(tokenizer, test["text"])
+    loader = DataLoader(train_ds, batch_size=BATCH, shuffle=True, collate_fn=collate,
+                        generator=torch.Generator().manual_seed(SEED))
 
     # Class weights counter the imbalance (about 90% of sentences are Fair).
     weights = compute_class_weight("balanced", classes=np.arange(len(LABELS)), y=np.array(y_train))
@@ -90,11 +112,11 @@ def main() -> None:
             scheduler.step()
             optimizer.zero_grad()
             running += loss.item()
-            if step % 50 == 0:
+            if step % 25 == 0:
                 print(f"epoch {epoch} step {step}/{len(loader)} loss {running / step:.4f} "
                       f"elapsed {(time.time() - start) / 60:.1f} min", flush=True)
 
-        val_f1 = f1_score(val["label"], predict(model, val_ds), average="macro", zero_division=0)
+        val_f1 = f1_score(val["label"], predict(model, val_ds, collate), average="macro", zero_division=0)
         history.append({"epoch": epoch, "train_loss": running / len(loader), "validation_macro_f1": val_f1})
         print(f"epoch {epoch} done: train loss {running / len(loader):.4f}, validation macro-F1 {val_f1:.3f}", flush=True)
         if val_f1 > best_f1:  # keep the epoch with the best validation score
@@ -108,7 +130,7 @@ def main() -> None:
     best = AutoModelForSequenceClassification.from_pretrained(OUT_DIR)
     result = evaluate(
         test["label"],
-        predict(best, test_ds),
+        predict(best, test_ds, collate),
         "DistilBERT (fine-tuned)",
         extra={
             "validation_macro_f1": best_f1,

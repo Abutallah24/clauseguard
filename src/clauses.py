@@ -27,8 +27,16 @@ def _protect(text: str) -> str:
     return re.sub(r"(?<=\d)\.(?=\d)", _DOT, text)
 
 
+HEADING_MAX_CHARS = 60
+
+
+def _is_heading(line: str) -> bool:
+    """Short line without closing punctuation, e.g. "4. Changes to These Terms" or "Termination"."""
+    return len(line) <= HEADING_MAX_CHARS and not re.search(r"[.!?:;,]$", line)
+
+
 def _blocks(text: str) -> list[str]:
-    """Group lines into blocks: a blank line or a list marker starts a new block,
+    """Group lines into blocks: a blank line, a list marker or a heading line starts a new block,
     other lines are treated as wrapped continuations of the previous line."""
     blocks: list[list[str]] = []
     for raw in text.splitlines():
@@ -36,7 +44,9 @@ def _blocks(text: str) -> list[str]:
         if not line:
             blocks.append([])
             continue
-        if not blocks or not blocks[-1] or _LIST_MARKER.match(line):
+        # A wrapped sentence continues in lowercase; a new sentence after a heading starts uppercase.
+        previous_is_heading = bool(blocks and blocks[-1]) and _is_heading(blocks[-1][-1]) and line[0].isupper()
+        if not blocks or not blocks[-1] or _LIST_MARKER.match(line) or previous_is_heading:
             blocks.append([line])
         else:
             blocks[-1].append(line)
@@ -47,6 +57,8 @@ def split_clauses(text: str) -> list[str]:
     """Return clauses of at least MIN_CLAUSE_CHARS characters, in document order."""
     clauses: list[str] = []
     for block in _blocks(text.replace("\r", "")):
+        if _is_heading(block):  # a standalone heading is a title, not a clause
+            continue
         for sentence in _SENTENCE_END.split(_protect(block)):
             sentence = re.sub(r"\s+", " ", sentence).strip().replace(_DOT, ".")
             if len(sentence) >= MIN_CLAUSE_CHARS:
