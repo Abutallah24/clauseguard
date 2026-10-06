@@ -405,7 +405,234 @@
       "validation_macro_f1": 0.668648934806136,
       "train_seconds": 2.5,
       "family": "classical"
+    },
+    "distilbert": {
+      "name": "DistilBERT (fine-tuned)",
+      "accuracy": 0.9477286869943995,
+      "macro": {
+        "precision": 0.7686423020551099,
+        "recall": 0.8474165875963052,
+        "f1": 0.8018615822589915
+      },
+      "micro": {
+        "precision": 0.9477286869943995,
+        "recall": 0.9477286869943995,
+        "f1": 0.9477286869943995
+      },
+      "weighted": {
+        "precision": 0.9519541472342252,
+        "recall": 0.9477286869943995,
+        "f1": 0.9493897219090514
+      },
+      "unfair_only": {
+        "micro_f1": 0.7417582417582418,
+        "macro_f1": 0.7803398940764532
+      },
+      "binary": {
+        "precision": 0.7552083333333334,
+        "recall": 0.8430232558139535,
+        "f1": 0.7967032967032966,
+        "accuracy": 0.9539514623522091
+      },
+      "per_class": {
+        "Fair": {
+          "precision": 0.9809187279151943,
+          "recall": 0.9672473867595819,
+          "f1-score": 0.9740350877192983,
+          "support": 1435.0
+        },
+        "Limitation of liability": {
+          "precision": 0.6585365853658537,
+          "recall": 0.75,
+          "f1-score": 0.7012987012987013,
+          "support": 36.0
+        },
+        "Unilateral termination": {
+          "precision": 0.65625,
+          "recall": 0.75,
+          "f1-score": 0.7,
+          "support": 28.0
+        },
+        "Unilateral change": {
+          "precision": 0.6046511627906976,
+          "recall": 0.6842105263157895,
+          "f1-score": 0.6419753086419753,
+          "support": 38.0
+        },
+        "Content removal": {
+          "precision": 0.7333333333333333,
+          "recall": 0.8461538461538461,
+          "f1-score": 0.7857142857142857,
+          "support": 13.0
+        },
+        "Contract by using": {
+          "precision": 0.7727272727272727,
+          "recall": 0.7727272727272727,
+          "f1-score": 0.7727272727272727,
+          "support": 22.0
+        },
+        "Choice of law": {
+          "precision": 1.0,
+          "recall": 0.9230769230769231,
+          "f1-score": 0.96,
+          "support": 13.0
+        },
+        "Jurisdiction": {
+          "precision": 0.875,
+          "recall": 0.9333333333333333,
+          "f1-score": 0.9032258064516129,
+          "support": 15.0
+        },
+        "Arbitration": {
+          "precision": 0.6363636363636364,
+          "recall": 1.0,
+          "f1-score": 0.7777777777777778,
+          "support": 7.0
+        },
+        "accuracy": 0.9477286869943995,
+        "macro avg": {
+          "precision": 0.7686423020551099,
+          "recall": 0.8474165875963052,
+          "f1-score": 0.8018615822589915,
+          "support": 1607.0
+        },
+        "weighted avg": {
+          "precision": 0.9519541472342252,
+          "recall": 0.9477286869943995,
+          "f1-score": 0.9493897219090514,
+          "support": 1607.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          1388,
+          14,
+          6,
+          14,
+          3,
+          5,
+          0,
+          1,
+          4
+        ],
+        [
+          9,
+          27,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          4,
+          0,
+          21,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          6,
+          0,
+          5,
+          26,
+          1,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          2,
+          0,
+          0,
+          0,
+          11,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          17,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          12,
+          1,
+          0
+        ],
+        [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          14,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          7
+        ]
+      ],
+      "n_test": 1607,
+      "validation_macro_f1": 0.7441937760799671,
+      "train_seconds": 4141.5,
+      "family": "deep learning",
+      "history": [
+        {
+          "epoch": 1,
+          "train_loss": 1.127560029798678,
+          "validation_macro_f1": 0.5708919660377779
+        },
+        {
+          "epoch": 2,
+          "train_loss": 0.47772536326751663,
+          "validation_macro_f1": 0.7125130097478913
+        },
+        {
+          "epoch": 3,
+          "train_loss": 0.2838563051895952,
+          "validation_macro_f1": 0.7441937760799671
+        }
+      ],
+      "hyperparameters": {
+        "base_model": "distilbert-base-uncased",
+        "max_len": 128,
+        "batch_size": 16,
+        "learning_rate": 5e-05,
+        "epochs": 3
+      }
     }
   },
-  "best_model": "tfidf_logreg"
+  "best_model": "distilbert"
 }

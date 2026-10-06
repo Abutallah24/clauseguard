@@ -91,8 +91,8 @@ epochs on the CPU.
 **Q: What is class imbalance and how did you handle it?**
 About 89% of sentences are fair. A lazy model could say "fair" every time and get ~89% accuracy while being useless.
 We used `class_weight="balanced"` in the classical models, and in DistilBERT a cross-entropy loss weighted by the
-square root of the balanced weights (full balancing was too aggressive for the rarest classes). Either way, mistakes on
-rare unfair classes cost more.
+square root of the balanced weights (a deliberately milder form of balancing, so the rarest classes count more without
+dominating training). Either way, mistakes on rare unfair classes cost more.
 
 **Q: Why F1 and not accuracy?**
 Because of the imbalance. F1 is the balance (harmonic mean) of precision (of what we flagged, how much was really
@@ -129,4 +129,12 @@ No. There are no external AI calls. The models are files in `models/` that we tr
 
 See `reports/metrics.json` and the "Model performance" page in the app. Summary table (test split):
 
-RESULTS_TABLE_PLACEHOLDER
+<!-- RESULTS:START -->
+| Model | Accuracy | Macro F1 | Unfair-only macro F1 | Fair vs unfair F1 | Training time |
+|---|---|---|---|---|---|
+| TF-IDF + Logistic Regression | 0.946 | 0.775 | 0.750 | 0.802 | 6 s |
+| TF-IDF + Linear SVM | 0.955 | 0.779 | 0.754 | 0.800 | 2 s |
+| **DistilBERT (fine-tuned)** (used by default) | 0.948 | 0.802 | 0.780 | 0.797 | 69 min |
+
+Default model = best validation macro F1 (0.744).
+<!-- RESULTS:END -->

@@ -1,0 +1,14 @@
+{
+  "run": "2026-10-06, Playwright (Chromium) against http://localhost:8501, default model DistilBERT (fine-tuned)",
+  "results": {
+    "pdf (samples/streamly_terms.pdf)": {"score": 95, "flagged_clauses": 12},
+    "scanned_pdf (samples/rental_agreement_scanned.pdf, OCR)": {"score": 86, "flagged_clauses": 6},
+    "docx (samples/internship_offer.docx)": {"score": 79, "flagged_clauses": 5},
+    "multiple_images (internship_offer_page1.png + page2.png)": {"score": 57, "flagged_clauses": 3},
+    "camera_style_photo (samples/camera_photo.jpg, tilted + blurred)": {"score": 80, "flagged_clauses": 6},
+    "url (https://www.dropbox.com/terms)": {"score": 100, "flagged_clauses": 23},
+    "pasted_text (3 sentences)": {"score": 61, "flagged_clauses": 3},
+    "private_url (http://192.168.1.1/terms)": "blocked: Links to local or private network addresses are not allowed.",
+    "camera_tab": "camera widget renders when toggled on; live capture not automatable (no camera device), same OCR path as images"
+  }
+}

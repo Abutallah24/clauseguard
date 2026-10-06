@@ -101,7 +101,15 @@ The classical models train in seconds. DistilBERT takes roughly an hour on a lap
 
 ## 6. Results
 
-RESULTS_TABLE_PLACEHOLDER
+<!-- RESULTS:START -->
+| Model | Accuracy | Macro F1 | Unfair-only macro F1 | Fair vs unfair F1 | Training time |
+|---|---|---|---|---|---|
+| TF-IDF + Logistic Regression | 0.946 | 0.775 | 0.750 | 0.802 | 6 s |
+| TF-IDF + Linear SVM | 0.955 | 0.779 | 0.754 | 0.800 | 2 s |
+| **DistilBERT (fine-tuned)** (used by default) | 0.948 | 0.802 | 0.780 | 0.797 | 69 min |
+
+Default model = best validation macro F1 (0.744).
+<!-- RESULTS:END -->
 
 All numbers are measured on the official test split and stored in `reports/metrics.json`.
 

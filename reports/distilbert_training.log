@@ -44,3 +44,25 @@ epoch 2 step 250/351 loss 0.4863 elapsed 46.2 min
 epoch 2 step 275/351 loss 0.4981 elapsed 48.5 min
 epoch 2 step 300/351 loss 0.4872 elapsed 50.5 min
 epoch 2 step 325/351 loss 0.4826 elapsed 51.5 min
+epoch 2 step 350/351 loss 0.4790 elapsed 52.4 min
+epoch 2 done: train loss 0.4777, validation macro-F1 0.713
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|##########| 1/1 [00:00<00:00,  6.52it/s]Writing model shards: 100%|##########| 1/1 [00:00<00:00,  6.52it/s]
+epoch 3 step 25/351 loss 0.2441 elapsed 54.7 min
+epoch 3 step 50/351 loss 0.2285 elapsed 55.5 min
+epoch 3 step 75/351 loss 0.2848 elapsed 56.3 min
+epoch 3 step 100/351 loss 0.3061 elapsed 57.1 min
+epoch 3 step 125/351 loss 0.3372 elapsed 58.0 min
+epoch 3 step 150/351 loss 0.3106 elapsed 58.7 min
+epoch 3 step 175/351 loss 0.3110 elapsed 59.6 min
+epoch 3 step 200/351 loss 0.3086 elapsed 60.5 min
+epoch 3 step 225/351 loss 0.2988 elapsed 61.4 min
+epoch 3 step 250/351 loss 0.2942 elapsed 62.4 min
+epoch 3 step 275/351 loss 0.2961 elapsed 63.5 min
+epoch 3 step 300/351 loss 0.2928 elapsed 64.6 min
+epoch 3 step 325/351 loss 0.2889 elapsed 65.7 min
+epoch 3 step 350/351 loss 0.2847 elapsed 66.9 min
+epoch 3 done: train loss 0.2839, validation macro-F1 0.744
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|##########| 1/1 [00:00<00:00,  6.17it/s]Writing model shards: 100%|##########| 1/1 [00:00<00:00,  6.17it/s]
+Loading weights:   0%|          | 0/104 [00:00<?, ?it/s]Loading weights:  50%|#####     | 52/104 [00:00<00:00, 455.49it/s]Loading weights: 100%|##########| 104/104 [00:00<00:00, 739.67it/s]
+DistilBERT (fine-tuned): acc=0.948 macroF1=0.802 microF1=0.948 unfair-macroF1=0.780 binaryF1=0.797
+total training time 69.0 min

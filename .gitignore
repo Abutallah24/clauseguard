@@ -8,3 +8,4 @@ data/cache/
 certs/
 .playwright-mcp/
 reports/screenshots/_*.png
+models/distilbert/model.safetensors

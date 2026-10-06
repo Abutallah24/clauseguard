@@ -210,7 +210,7 @@ def build() -> None:
         bullet(doc, [("Deep learning: ", True), (f"DistilBERT (distilbert-base-uncased) fine-tuned for "
                      f"{hp.get('epochs', 3)} epochs on CPU (AdamW, lr {hp.get('learning_rate', 5e-5)}, batch "
                      f"{hp.get('batch_size', 16)}, max length {hp.get('max_len', 128)}, linear warm-up) with a "
-                     "cross-entropy loss weighted by the square root of balanced class weights (milder than full balancing, which made training unstable on rare classes); the epoch with the best validation macro F1 was kept.", False)])
+                     "cross-entropy loss weighted by the square root of the balanced class weights (a deliberately milder form of balancing, so rare classes count more without dominating); the epoch with the best validation macro F1 was kept.", False)])
     bullet(doc, [("Rule checks: ", True), ("5 transparent keyword rules for patterns outside the dataset that "
                  "students often meet (auto-renewal, hidden fees, data sharing, bond / lock-in, deposit forfeiture), "
                  "always labelled separately from model predictions.", False)])
@@ -291,9 +291,10 @@ def build() -> None:
     para(doc, (
         "The Streamlit app offers tabs for PDF, Word, multiple images, camera, link and pasted text, three built-in "
         "sample documents (app terms, a rental agreement and an internship offer letter), a downloadable HTML report and "
-        "a model-performance page. It runs on a laptop and on phones over the same Wi-Fi. All seven input types were "
-        "tested end-to-end with automated browser tests, alongside a pytest suite for extraction, clause splitting, "
-        "rules and scoring."
+        "a model-performance page. It runs on a laptop and on phones over the same Wi-Fi (HTTPS mode for the camera). "
+        "PDF, scanned PDF, Word, multi-image, link and pasted-text inputs were tested end-to-end with automated "
+        "browser tests; the camera path shares the image OCR code and is covered by a phone-style photo test. A pytest "
+        "suite covers extraction, clause splitting, rules, scoring, HTML escaping and the app's behaviour."
     ))
 
     heading(doc, "6. Conclusion and future scope")
