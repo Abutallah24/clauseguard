@@ -6,8 +6,8 @@ Read this once before the viva. Every answer is short enough to say out loud.
 
 ## The 30-second pitch
 
-> People accept terms and conditions without reading them. We trained our own NLP model on 9,414 labelled
-> sentences from 50 real terms of service to detect 8 kinds of unfair clause. The app takes a PDF, Word file,
+> People accept terms and conditions without reading them. We trained our own NLP models on UNFAIR-ToS, a dataset
+> of 9,414 expert-labelled sentences from 50 real terms of service, to detect 8 kinds of unfair clause. The app takes a PDF, Word file,
 > photo, link or pasted text, finds the risky clauses, explains each one in plain English and gives a 0–100 risk score.
 
 ---
@@ -90,8 +90,9 @@ epochs on the CPU.
 
 **Q: What is class imbalance and how did you handle it?**
 About 89% of sentences are fair. A lazy model could say "fair" every time and get ~89% accuracy while being useless.
-We used `class_weight="balanced"` in the classical models and weighted cross-entropy loss in DistilBERT, so
-mistakes on rare unfair classes cost more.
+We used `class_weight="balanced"` in the classical models, and in DistilBERT a cross-entropy loss weighted by the
+square root of the balanced weights (full balancing was too aggressive for the rarest classes). Either way, mistakes on
+rare unfair classes cost more.
 
 **Q: Why F1 and not accuracy?**
 Because of the imbalance. F1 is the balance (harmonic mean) of precision (of what we flagged, how much was really

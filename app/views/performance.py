@@ -51,20 +51,25 @@ html(
 )
 
 html('<h2 class="cg-h2">Comparison</h2>')
-if (FIGURES / "model_comparison.png").exists():
-    st.image(str(FIGURES / "model_comparison.png"), use_container_width=True)
+def chart(name: str) -> None:
+    path = FIGURES / name
+    if path.exists():
+        st.image(str(path), use_container_width=True)
+    else:
+        st.info("This chart has not been generated yet. Run: .venv\Scripts\python -m training.charts")
+
+
+chart("model_comparison.png")
 
 c1, c2 = st.columns(2, gap="large")
 with c1:
     html('<h2 class="cg-h2">F1 per clause type</h2>')
-    if (FIGURES / "per_class_f1.png").exists():
-        st.image(str(FIGURES / "per_class_f1.png"), use_container_width=True)
+    chart("per_class_f1.png")
 with c2:
     html('<h2 class="cg-h2">Confusion matrix</h2>')
     choice = st.selectbox("Model", order, index=order.index(best),
                           format_func=lambda k: metrics["models"][k]["name"], label_visibility="collapsed")
-    if (FIGURES / f"confusion_{choice}.png").exists():
-        st.image(str(FIGURES / f"confusion_{choice}.png"), use_container_width=True)
+    chart(f"confusion_{choice}.png")
 
 html('<h2 class="cg-h2">The dataset</h2>')
 if EDA.exists():
@@ -76,8 +81,7 @@ if EDA.exists():
         f'{sizes["test"]:,} for testing. Only about {eda["unfair_share"]["train"]:.0%} of sentences are unfair, '
         "so the models use class weights to avoid always predicting “fair”.</p>"
     )
-if (FIGURES / "class_distribution.png").exists():
-    st.image(str(FIGURES / "class_distribution.png"), use_container_width=True)
+chart("class_distribution.png")
 
 with st.expander("Per-class precision, recall and F1"):
     for key in order:

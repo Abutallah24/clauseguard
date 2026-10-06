@@ -14,7 +14,7 @@ from app.ui.components import (
 )
 from app.ui.report_html import build_report
 from samples.sample_texts import SAMPLES
-from src import extract
+from src import extract, models
 from src.extract import ExtractionError
 from src.pipeline import analyze
 
@@ -31,6 +31,7 @@ def run(source_name: str, get_text) -> None:
     if not model_key:
         st.error("No trained model is available yet. Train the models first (see README).")
         return
+    st.session_state.pop("result", None)  # never show an old report under a new error
     try:
         with st.status("Reading the document…", expanded=False) as status:
             text = get_text()
@@ -40,11 +41,15 @@ def run(source_name: str, get_text) -> None:
     except ExtractionError as exc:
         st.error(str(exc))
         return
+    except Exception:  # anything unexpected: friendly message instead of a traceback
+        st.error("Something went wrong while reading this document. Try another file, or paste the text instead.")
+        return
     if not result.clauses:
         st.warning("The text was read, but it has no full sentences to check. Try a longer document.")
         return
     st.session_state["result"] = result
     st.session_state["source_name"] = source_name
+    st.session_state["truncated"] = len(text) >= extract.MAX_TEXT_CHARS
 
 
 # ---------- samples ----------
@@ -106,15 +111,24 @@ if result is None:
     html(
         '<ol class="cg-steps">'
         "<li><b>Add a document</b>Paste text, upload a PDF, Word file or photos, or enter a link.</li>"
-        "<li><b>We check every clause</b>A model we trained on 9,400 real terms-of-service sentences looks for 8 kinds of unfair clause.</li>"
+        "<li><b>We check every clause</b>A model we trained on 5,500 labelled sentences from real terms of service looks for 8 kinds of unfair clause.</li>"
         "<li><b>Read the report</b>Get a 0–100 risk score, the risky clauses highlighted, and why each one matters.</li>"
         "</ol>"
     )
     st.stop()
 
+model_key = st.session_state.get("model_key")
+if model_key and result.model_key != model_key:  # the user switched model: re-check the same text
+    with st.spinner(f"Re-checking with {models.DISPLAY_NAMES[model_key]}…"):
+        result = analyze(result.text, model_key)
+    st.session_state["result"] = result
+
 st.divider()
 source = st.session_state.get("source_name", "Document")
 html(f'<h2 class="cg-h2" style="margin-top:.5rem">Report for {escape(source)}</h2>')
+html(f'<p class="cg-note" style="margin:-.4rem 0 1rem">Checked with {escape(models.DISPLAY_NAMES[result.model_key])}</p>')
+if st.session_state.get("truncated"):
+    st.warning(f"This document is very long, so only the first {extract.MAX_TEXT_CHARS:,} characters were checked.")
 
 left, right = st.columns([1, 1.9], gap="large")
 with left:

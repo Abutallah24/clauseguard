@@ -44,3 +44,36 @@ def test_heading_lines_are_not_merged_into_the_clause():
 
 def test_empty_text_gives_no_clauses():
     assert split_clauses("   \n  ") == []
+
+
+def test_bullet_list_without_full_stops_is_kept():
+    text = (
+        "Fees\n"
+        "- Non-refundable deposit of Rs 5000 is kept\n"
+        "- We may share your data with advertisers\n"
+        "• Late payment penalty of 2% per month applies"
+    )
+    assert split_clauses(text) == [
+        "- Non-refundable deposit of Rs 5000 is kept",
+        "- We may share your data with advertisers",
+        "• Late payment penalty of 2% per month applies",
+    ]
+
+
+def test_wrapped_line_before_capitalised_word_is_joined():
+    text = (
+        "Any dispute arising out of this Agreement shall go to the\n"
+        "Courts of Delaware exclusively and you waive any class action."
+    )
+    assert split_clauses(text) == [
+        "Any dispute arising out of this Agreement shall go to the Courts of Delaware exclusively "
+        "and you waive any class action."
+    ]
+
+
+def test_wrapped_line_ending_in_preposition_is_joined():
+    text = "All claims will be settled by binding arbitration under\nThe rules of the ICC.\nYou waive your right to a jury trial."
+    assert split_clauses(text) == [
+        "All claims will be settled by binding arbitration under The rules of the ICC.",
+        "You waive your right to a jury trial.",
+    ]

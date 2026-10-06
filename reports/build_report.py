@@ -14,6 +14,8 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
+from src.labels import LABELS
+
 ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / "reports"
 FIG = REPORTS / "figures"
@@ -104,7 +106,10 @@ def figure(doc, path: Path, width_cm: float, caption: str):
 
 
 def side_by_side(doc, items):
-    """items: list of (path, width_cm, caption) placed in one borderless row."""
+    """items: list of (path, width_cm, caption) placed in one borderless row; missing images are skipped."""
+    items = [item for item in items if item[0].exists()]
+    if not items:
+        return
     table = doc.add_table(rows=2, cols=len(items))
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
     set_table_borders(table, inner=False)
@@ -204,7 +209,7 @@ def build() -> None:
         bullet(doc, [("Deep learning: ", True), (f"DistilBERT (distilbert-base-uncased) fine-tuned for "
                      f"{hp.get('epochs', 3)} epochs on CPU (AdamW, lr {hp.get('learning_rate', 5e-5)}, batch "
                      f"{hp.get('batch_size', 16)}, max length {hp.get('max_len', 128)}, linear warm-up) with a "
-                     "class-weighted cross-entropy loss; the epoch with the best validation macro F1 was kept.", False)])
+                     "cross-entropy loss weighted by the square root of balanced class weights (milder than full balancing, which made training unstable on rare classes); the epoch with the best validation macro F1 was kept.", False)])
     bullet(doc, [("Rule checks: ", True), ("5 transparent keyword rules for patterns outside the dataset that "
                  "students often meet (auto-renewal, hidden fees, data sharing, bond / lock-in, deposit forfeiture), "
                  "always labelled separately from model predictions.", False)])
@@ -252,13 +257,30 @@ def build() -> None:
               and isinstance(v, dict)}
     strongest = max(unfair, key=lambda k: unfair[k]["f1-score"])
     weakest = min(unfair, key=lambda k: unfair[k]["f1-score"])
+    test_best = max(keys, key=lambda k: models[k]["macro"]["f1"])
+    fair_share = 1 - eda["unfair_share"]["test"]
+
+    cm = best["confusion_matrix"]
+    labels = LABELS
+    false_alarms = sum(cm[0][1:])  # fair predicted as unfair
+    missed = sum(row[0] for row in cm[1:])  # unfair predicted as fair
+    pairs = [(cm[i][j], i, j) for i in range(1, len(cm)) for j in range(1, len(cm)) if i != j]
+    top_count, top_i, top_j = max(pairs)
+    selection = (f"{best['name']} was selected for the app because it has the best validation macro F1 "
+                 f"({best['validation_macro_f1']:.3f}).")
+    if test_best != best_key:
+        selection += (f" On the test set {models[test_best]['name']} scores slightly higher "
+                      f"({models[test_best]['macro']['f1']:.3f} vs {best['macro']['f1']:.3f}), so the two are close.")
+    errors = (f"For {best['name']}, {false_alarms} fair sentences were flagged as unfair (false alarms) and "
+              f"{missed} unfair sentences were missed.")
+    if top_count:
+        errors += (f" The most common mix-up between unfair types was {labels[top_i]} predicted as "
+                   f"{labels[top_j]} ({top_count} sentences).")
     para(doc, (
-        f"Accuracy is high for every model because about 89% of sentences are fair, so we use macro F1 (all 9 classes "
-        f"weighted equally) as the main metric. {best['name']} performs best on macro F1. Per class, it is strongest "
-        f"on {strongest} (F1 {unfair[strongest]['f1-score']:.2f}) and weakest on {weakest} "
-        f"(F1 {unfair[weakest]['f1-score']:.2f}, only {int(unfair[weakest]['support'])} test sentences). Most errors "
-        f"are unfair clauses predicted as fair, or confusions between closely related types such as jurisdiction and "
-        f"choice of law, which often occur in the same sentence."
+        f"Accuracy is high for every model because about {fair_share:.0%} of test sentences are fair, so macro F1 "
+        f"(all 9 classes weighted equally) is the main metric. {selection} Per class, it is strongest on {strongest} "
+        f"(F1 {unfair[strongest]['f1-score']:.2f}) and weakest on {weakest} (F1 {unfair[weakest]['f1-score']:.2f}, "
+        f"{int(unfair[weakest]['support'])} test sentences). {errors}"
     ))
 
     heading(doc, "5. Application")

@@ -135,3 +135,78 @@ def test_pdf_page_limit():
         doc.new_page().insert_text((72, 72), SENTENCE)
     with pytest.raises(ExtractionError):
         extract.from_pdf(doc.tobytes())
+
+
+@pytest.mark.parametrize("url", ["https://example.com:abc/terms", "javascript:alert(1)", "http://[fe80::1%25eth0]/x"])
+def test_malformed_urls_give_friendly_error(url):
+    with pytest.raises(ExtractionError):
+        extract.from_url(url)
+
+
+def test_unknown_charset_falls_back():
+    assert extract._decode_html("caf\xe9".encode("latin-1"), "x-unknown-charset") == "caf\xe9"
+
+
+def test_redirect_to_private_address_is_blocked(monkeypatch):
+    class Redirect:
+        is_redirect, status_code, headers = True, 302, {"Location": "http://127.0.0.1/admin"}
+
+        def close(self):
+            pass
+
+    public = [(2, 1, 6, "", ("93.184.216.34", 80))]
+    private = [(2, 1, 6, "", ("127.0.0.1", 80))]
+    monkeypatch.setattr(extract.socket, "getaddrinfo",
+                        lambda host, port: private if host == "127.0.0.1" else public)
+    monkeypatch.setattr(extract.requests, "get", lambda *a, **k: Redirect())
+    with pytest.raises(ExtractionError, match="private"):
+        extract.from_url("http://example.com/terms")
+
+
+def test_huge_scanned_page_is_rendered_small(monkeypatch):
+    doc = pymupdf.open()
+    doc.new_page(width=14400, height=14400)  # a 200 x 200 inch blank page
+    seen = {}
+
+    def fake_ocr(img):
+        seen["size"] = img.size
+        return "We may terminate your account at any time without notice."
+
+    monkeypatch.setattr(extract, "_ocr_image", fake_ocr)
+    extract.from_pdf(doc.tobytes())
+    assert max(seen["size"]) <= extract.OCR_MAX_SIDE
+
+
+def test_slow_download_hits_overall_deadline(monkeypatch):
+    clock = iter(range(0, 1000, 15))  # every call to monotonic() advances 15 s
+
+    class Slow:
+        is_redirect, status_code, headers, encoding = False, 200, {"Content-Type": "text/html"}, "utf-8"
+        closed = False
+
+        def iter_content(self, size):
+            while True:
+                yield b"<p>terms</p>"
+
+        def close(self):
+            Slow.closed = True
+
+    monkeypatch.setattr(extract.socket, "getaddrinfo", lambda h, p: [(2, 1, 6, "", ("93.184.216.34", 80))])
+    monkeypatch.setattr(extract.requests, "get", lambda *a, **k: Slow())
+    monkeypatch.setattr(extract.time, "monotonic", lambda: next(clock))
+    with pytest.raises(ExtractionError, match="too long"):
+        extract.from_url("http://example.com/terms")
+    assert Slow.closed
+
+
+def test_bare_domain_with_port_gets_https(monkeypatch):
+    seen = {}
+
+    def fake_check(url):
+        seen["url"] = url
+        raise ExtractionError("stop")
+
+    monkeypatch.setattr(extract, "_ensure_public_http_url", fake_check)
+    with pytest.raises(ExtractionError):
+        extract.from_url("example.com:8080/terms")
+    assert seen["url"] == "https://example.com:8080/terms"

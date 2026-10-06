@@ -6,3 +6,5 @@ models/distilbert/checkpoint-*/
 data/cache/
 .superpowers/
 certs/
+.playwright-mcp/
+reports/screenshots/_*.png

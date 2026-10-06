@@ -8,6 +8,7 @@ import io
 import ipaddress
 import re
 import socket
+import time
 from functools import lru_cache
 from urllib.parse import urljoin, urlparse
 
@@ -20,7 +21,8 @@ MAX_IMAGES = 20
 MAX_PDF_PAGES = 60  # keeps OCR of scanned PDFs to a few minutes at most
 MAX_TEXT_CHARS = 200_000
 MAX_URL_BYTES = 5 * 1024 * 1024
-URL_TIMEOUT = 10  # seconds
+URL_TIMEOUT = 10  # seconds per network read
+URL_DEADLINE = 25  # seconds for the whole download
 MAX_REDIRECTS = 5
 MIN_PAGE_CHARS = 40  # PDF pages with less text than this are treated as scanned and OCR'd
 OCR_MAX_SIDE = 2000  # large photos are downscaled before OCR for speed
@@ -115,7 +117,9 @@ def from_pdf(data: bytes) -> str:
     for page in doc:
         text = page.get_text("text")
         if len(text.strip()) < MIN_PAGE_CHARS:  # scanned page: render and OCR it
-            pix = page.get_pixmap(dpi=200)
+            # 200 dpi, but never larger than OCR_MAX_SIDE pixels (huge pages would exhaust memory).
+            zoom = min(200 / 72, OCR_MAX_SIDE / max(page.rect.width, page.rect.height, 1))
+            pix = page.get_pixmap(matrix=pymupdf.Matrix(zoom, zoom))
             text = _ocr_image(Image.open(io.BytesIO(pix.tobytes("png"))))
         pages.append(text)
     return _finish("\n\n".join(pages), "No readable text was found in this PDF.")
@@ -164,15 +168,22 @@ def from_images(images: list[bytes]) -> str:
 
 
 def _ensure_public_http_url(url: str) -> str:
-    parsed = urlparse(url)
+    try:
+        parsed = urlparse(url)
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    except ValueError as exc:  # e.g. a non-numeric port
+        raise ExtractionError("That link is not a valid web address. Check it and try again.") from exc
     if parsed.scheme not in ("http", "https") or not parsed.hostname:
         raise ExtractionError("Please enter a full web link starting with http:// or https://")
     try:
-        infos = socket.getaddrinfo(parsed.hostname, parsed.port or (443 if parsed.scheme == "https" else 80))
-    except socket.gaierror as exc:
+        infos = socket.getaddrinfo(parsed.hostname, port)
+    except (socket.gaierror, UnicodeError, ValueError) as exc:
         raise ExtractionError("That website address could not be found. Check the link.") from exc
     for info in infos:
-        ip = ipaddress.ip_address(info[4][0])
+        try:
+            ip = ipaddress.ip_address(str(info[4][0]).split("%")[0])  # drop IPv6 scope ids
+        except ValueError as exc:
+            raise ExtractionError("That website address could not be checked. Try another link.") from exc
         if not ip.is_global:
             raise ExtractionError("Links to local or private network addresses are not allowed.")
     return url
@@ -184,14 +195,18 @@ def _decode_html(body: bytes, declared: str | None) -> str:
     try:
         return body.decode("utf-8")
     except UnicodeDecodeError:
-        return body.decode(declared or "latin-1", errors="replace")
+        try:
+            return body.decode(declared or "latin-1", errors="replace")
+        except LookupError:  # unknown charset name sent by the server
+            return body.decode("latin-1", errors="replace")
+
+
+_NON_WEB_SCHEME = re.compile(r"^(javascript|data|file|mailto|ftp|about|vbscript|blob):", re.IGNORECASE)
 
 
 def from_url(url: str) -> str:
-    import trafilatura
-
     url = (url or "").strip()
-    if url and "://" not in url:
+    if url and "://" not in url and not _NON_WEB_SCHEME.match(url):  # bare "example.com/terms"
         url = "https://" + url
 
     headers = {"User-Agent": "Mozilla/5.0 (ClauseGuard student project; terms analyser)"}
@@ -208,18 +223,34 @@ def from_url(url: str) -> str:
         else:
             raise ExtractionError("The link redirected too many times.")
 
-        if resp.status_code in (401, 403, 429):
-            raise ExtractionError("This website blocked automatic reading. Copy the text and use 'Paste text' instead.")
-        if resp.status_code >= 400:
-            raise ExtractionError(f"The website returned an error (HTTP {resp.status_code}). Check the link, or copy the text and use 'Paste text'.")
-
-        body = b""
-        for chunk in resp.iter_content(64 * 1024):
-            body += chunk
-            if len(body) > MAX_URL_BYTES:
-                raise ExtractionError("That page is too large to analyze. Copy the terms section and use 'Paste text' instead.")
+        try:
+            body = _read_body(resp)
+        finally:
+            resp.close()
     except requests.RequestException as exc:
         raise ExtractionError("Could not reach that website. Check the link and your internet connection.") from exc
+    return _page_text(url, resp, body)
+
+
+def _read_body(resp) -> bytes:
+    """Check the status and download the body with a size cap and an overall deadline."""
+    if resp.status_code in (401, 403, 429):
+            raise ExtractionError("This website blocked automatic reading. Copy the text and use 'Paste text' instead.")
+    if resp.status_code >= 400:
+        raise ExtractionError(f"The website returned an error (HTTP {resp.status_code}). Check the link, or copy the text and use 'Paste text'.")
+    chunks, size, start = [], 0, time.monotonic()
+    for chunk in resp.iter_content(64 * 1024):
+        chunks.append(chunk)
+        size += len(chunk)
+        if size > MAX_URL_BYTES:
+            raise ExtractionError("That page is too large to analyze. Copy the terms section and use 'Paste text' instead.")
+        if time.monotonic() - start > URL_DEADLINE:
+            raise ExtractionError("The website took too long to respond. Try again, or copy the text and use 'Paste text'.")
+    return b"".join(chunks)
+
+
+def _page_text(url: str, resp, body: bytes) -> str:
+    import trafilatura
 
     content_type = resp.headers.get("Content-Type", "").lower()
     if "pdf" in content_type or url.lower().endswith(".pdf"):

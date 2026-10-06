@@ -30,9 +30,25 @@ def _protect(text: str) -> str:
 HEADING_MAX_CHARS = 60
 
 
+HEADING_MAX_WORDS = 8
+_BULLET = re.compile(r"^\s*[-•*▪●]\s+")
+_FUNCTION_WORDS = {"a", "an", "and", "as", "at", "by", "for", "from", "in", "into", "of", "on", "or", "the",
+                   "to", "under", "with", "your", "our", "any", "all", "this", "that", "is", "are", "be"}
+
+
 def _is_heading(line: str) -> bool:
-    """Short line without closing punctuation, e.g. "4. Changes to These Terms" or "Termination"."""
-    return len(line) <= HEADING_MAX_CHARS and not re.search(r"[.!?:;,]$", line)
+    """A title such as "4. Changes to These Terms", "Termination" or "FEES".
+
+    Must be short, have no closing punctuation, not be a bullet point, not end in a function word
+    (a wrapped sentence often does: "...shall go to the"), and look like a title: every word longer
+    than three letters is capitalised, or the line is in capitals.
+    """
+    if len(line) > HEADING_MAX_CHARS or re.search(r"[.!?:;,]$", line) or _BULLET.match(line):
+        return False
+    words = _LIST_MARKER.sub("", line).split()
+    if not words or len(words) > HEADING_MAX_WORDS or words[-1].lower() in _FUNCTION_WORDS:
+        return False
+    return line.isupper() or all(w[0].isupper() or w[0].isdigit() for w in words if len(w) > 3)
 
 
 def _blocks(text: str) -> list[str]:
