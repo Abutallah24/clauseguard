@@ -1,0 +1,17 @@
+[server]
+maxUploadSize = 15          # MB, matches src/extract.py MAX_FILE_BYTES
+headless = true
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+base = "light"
+primaryColor = "#3a3fd1"
+backgroundColor = "#f6f8fb"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#0d253d"
+font = "sans serif"
+
+[client]
+toolbarMode = "minimal"

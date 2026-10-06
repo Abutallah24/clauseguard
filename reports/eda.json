@@ -1,0 +1,40 @@
+{
+  "split_sizes": {
+    "train": 5532,
+    "validation": 2275,
+    "test": 1607
+  },
+  "unfair_share": {
+    "train": 0.1139,
+    "validation": 0.1011,
+    "test": 0.107
+  },
+  "multi_label_sentences": 63,
+  "train_class_counts": {
+    "Fair": 4902,
+    "Limitation of liability": 191,
+    "Unilateral termination": 139,
+    "Unilateral change": 122,
+    "Content removal": 73,
+    "Contract by using": 76,
+    "Choice of law": 39,
+    "Jurisdiction": 34,
+    "Arbitration": 28
+  },
+  "words_per_sentence": {
+    "mean": 32.3,
+    "median": 26,
+    "max": 441
+  },
+  "examples": {
+    "Fair": "notice to california subscribers : you may cancel your subscription , without penalty or obligation , at any time prior to midnight of the third business day following the date you subscribed . \n",
+    "Limitation of liability": "though tinder strives to encourage a respectful user experience through features like the double opt-in that only allows users to communicate if they have both indicated interest in one another , it is not responsible for the conduct of any user on or off of the services . \n",
+    "Unilateral termination": "tinder may terminate your account at any time without notice if it believes that you have violated this agreement . \n",
+    "Unilateral change": "we may make changes to this agreement and to the services from time to time . \n",
+    "Content removal": "this means we may add new product features or enhancements from time to time as well as remove some features , and if these actions do not materially affect your rights or obligations , we may not provide you with notice before taking them.we may even suspend the services entirely , in which event we will notify you in advance unless extenuating circumstances , such as safety or security concerns , prevent us from doing so . \n",
+    "Contract by using": "by creating a tinder account or by using the tinder imessage app ( `` tinder stacks '' ) , whether through a mobile device , mobile application or computer ( collectively , the `` service '' ) you agree to be bound by ( i ) these terms of use , ( ii ) our privacy policy and safety tips , each of which is incorporated by reference into this agreement , and ( iii ) any terms disclosed and agreed to by you if you purchase additional features , products or services we offer on the service ( collectively , this `` agreement '' ) . \n",
+    "Choice of law": "this agreement , and any dispute between you and the company , shall be governed by the laws of the state of texas without regard to principles of conflicts of law , provided that this arbitration agreement shall be governed by the federal arbitration act . \n",
+    "Jurisdiction": "in the event that this arbitration agreement is for any reason held to be unenforceable , any litigation against the company ( except for small-claims court actions ) may be commenced only in the federal or state courts located in dallas county , texas . \n",
+    "Arbitration": "the exclusive means of resolving any dispute or claim arising out of or relating to this agreement ( including any alleged breach thereof ) or the service shall be binding arbitration administered by the american arbitration association under the consumer arbitration rules . \n"
+  }
+}
