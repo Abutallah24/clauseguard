@@ -22,3 +22,6 @@ epoch 1 step 100/351 loss 1.6869 elapsed 7.0 min
 epoch 1 step 125/351 loss 1.6030 elapsed 9.5 min
 epoch 1 step 150/351 loss 1.5806 elapsed 12.0 min
 epoch 1 step 175/351 loss 1.4831 elapsed 14.0 min
+epoch 1 step 200/351 loss 1.4200 elapsed 15.7 min
+epoch 1 step 225/351 loss 1.3589 elapsed 18.3 min
+epoch 1 step 250/351 loss 1.3207 elapsed 19.6 min

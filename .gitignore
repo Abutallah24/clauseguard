@@ -5,3 +5,4 @@ __pycache__/
 models/distilbert/checkpoint-*/
 data/cache/
 .superpowers/
+certs/

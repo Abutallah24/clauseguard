@@ -19,5 +19,6 @@ pillow==12.3.0
 requests==2.34.2
 trafilatura==2.3.0
 wordninja==2.0.0
+cryptography==50.0.2
 beautifulsoup4==4.15.0
 pytest==9.1.1
