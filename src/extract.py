@@ -6,6 +6,7 @@ message that is safe to show directly to the user.
 
 import io
 import ipaddress
+import re
 import socket
 from functools import lru_cache
 from urllib.parse import urljoin, urlparse
@@ -22,6 +23,8 @@ URL_TIMEOUT = 10  # seconds
 MAX_REDIRECTS = 5
 MIN_PAGE_CHARS = 40  # PDF pages with less text than this are treated as scanned and OCR'd
 OCR_MAX_SIDE = 2000  # large photos are downscaled before OCR for speed
+OCR_MIN_WIDTH = 1600  # narrower images are upscaled (up to 2x) before OCR
+MERGED_WORD_MIN = 10  # letter runs at least this long are checked for missing spaces
 
 
 class ExtractionError(Exception):
@@ -51,10 +54,28 @@ def _ocr_engine():
     return RapidOCR()
 
 
+_LETTER_RUN = re.compile(r"[A-Za-z]{%d,}" % MERGED_WORD_MIN)
+
+
+def _fix_merged_words(line: str) -> str:
+    """OCR on small or blurry photos often drops spaces ("theTermsofService").
+    Long letter-only runs are re-split with a word-frequency dictionary; real long words stay intact."""
+    import wordninja
+
+    def split(match: re.Match) -> str:
+        parts = wordninja.split(match.group(0))
+        return " ".join(parts) if parts else match.group(0)
+
+    return _LETTER_RUN.sub(split, line)
+
+
 def _ocr_image(img: Image.Image) -> str:
     img = ImageOps.exif_transpose(img).convert("RGB")  # respect phone camera rotation
     if max(img.size) > OCR_MAX_SIDE:
         img.thumbnail((OCR_MAX_SIDE, OCR_MAX_SIDE))
+    elif img.width < OCR_MIN_WIDTH:  # small text: upscale so the recogniser sees word gaps
+        scale = min(2.0, OCR_MIN_WIDTH / img.width)
+        img = img.resize((int(img.width * scale), int(img.height * scale)), Image.LANCZOS)
     result, _ = _ocr_engine()(np.array(img))
     if not result:
         return ""
@@ -67,7 +88,7 @@ def _ocr_image(img: Image.Image) -> str:
             lines[-1][1].append((box[0][0], text))
         else:
             lines.append([top, [(box[0][0], text)]])
-    return "\n".join(" ".join(t for _, t in sorted(words)) for _, words in lines)
+    return "\n".join(_fix_merged_words(" ".join(t for _, t in sorted(words))) for _, words in lines)
 
 
 # ---------- public extractors ----------
@@ -152,6 +173,15 @@ def _ensure_public_http_url(url: str) -> str:
     return url
 
 
+def _decode_html(body: bytes, declared: str | None) -> str:
+    """Prefer UTF-8 (most of the web); fall back to the declared charset only if UTF-8 fails.
+    requests declares ISO-8859-1 whenever the server omits a charset, which garbles UTF-8 pages."""
+    try:
+        return body.decode("utf-8")
+    except UnicodeDecodeError:
+        return body.decode(declared or "latin-1", errors="replace")
+
+
 def from_url(url: str) -> str:
     import trafilatura
 
@@ -190,7 +220,7 @@ def from_url(url: str) -> str:
     if "pdf" in content_type or url.lower().endswith(".pdf"):
         return from_pdf(body)
 
-    html = body.decode(resp.encoding or "utf-8", errors="replace")
+    html = _decode_html(body, resp.encoding)
     text = trafilatura.extract(html, include_comments=False, include_tables=True, favor_recall=True) or ""
     return _finish(
         text,

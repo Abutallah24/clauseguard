@@ -11,7 +11,7 @@
   --ink-mute: #64748d;
   --canvas: #ffffff;
   --plane: #f6f8fb;
-  --hairline: #e3e8ee;
+  --hairline: #e6e9ee;
   --accent: #3a3fd1;
   --accent-soft: #eef0ff;
   --high: #c62f3a;       /* text-safe red */
@@ -25,8 +25,8 @@
   --low-mark: #c4ead0;
   --radius-s: 6px;
   --radius-m: 10px;
-  --radius-l: 14px;
-  --shadow: 0 1px 2px rgba(13, 37, 61, 0.06), 0 8px 24px -12px rgba(13, 37, 61, 0.18);
+  --radius-l: 12px;
+  --shadow: 0 1px 2px rgba(13, 37, 61, 0.04);
   --ui: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
   --doc: "Source Serif 4", Georgia, "Times New Roman", serif;
 }

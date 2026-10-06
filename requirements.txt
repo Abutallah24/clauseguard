@@ -1,0 +1,23 @@
+# Install with:  .venv\Scripts\python -m pip install -r requirements.txt
+# PyTorch CPU build comes from PyTorch's own index (smaller download, no GPU needed).
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.1
+transformers==5.18.0
+datasets==5.1.0
+accelerate==1.15.0
+scikit-learn==1.9.1
+pandas==3.0.6
+numpy==2.5.3
+joblib==1.6.0
+matplotlib==3.11.2
+streamlit==1.65.0
+pymupdf==1.28.2
+python-docx==1.2.0
+rapidocr-onnxruntime==1.4.4
+onnxruntime==1.30.0
+pillow==12.3.0
+requests==2.34.2
+trafilatura==2.3.0
+wordninja==2.0.0
+beautifulsoup4==4.15.0
+pytest==9.1.1

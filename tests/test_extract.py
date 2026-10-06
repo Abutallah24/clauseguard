@@ -101,3 +101,23 @@ def test_text_cap():
 def test_oversized_file_rejected():
     with pytest.raises(ExtractionError):
         extract.from_pdf(b"0" * (extract.MAX_FILE_BYTES + 1))
+
+
+def test_html_without_charset_is_decoded_as_utf8():
+    # requests reports ISO-8859-1 when a server omits the charset; UTF-8 pages must still decode correctly.
+    assert extract._decode_html("Dropbox’s terms".encode("utf-8"), "ISO-8859-1") == "Dropbox’s terms"
+
+
+def test_html_with_real_latin1_still_works():
+    assert extract._decode_html("café".encode("latin-1"), "ISO-8859-1") == "café"
+
+
+def test_merged_ocr_words_are_split_and_punctuation_kept():
+    assert extract._fix_merged_words("Lastupdated:1August2026, theTermsofService.") == (
+        "Last updated:1August2026, the Terms of Service."
+    )
+
+
+def test_normal_words_untouched():
+    line = "Your responsibilities regarding confidentiality remain."
+    assert extract._fix_merged_words(line) == line

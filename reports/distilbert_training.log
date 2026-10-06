@@ -16,3 +16,7 @@ Notes:
 - UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
 - MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
 epoch 1 step 25/351 loss 2.1120 elapsed 1.5 min
+epoch 1 step 50/351 loss 1.9119 elapsed 3.3 min
+epoch 1 step 75/351 loss 1.7812 elapsed 5.1 min
+epoch 1 step 100/351 loss 1.6869 elapsed 7.0 min
+epoch 1 step 125/351 loss 1.6030 elapsed 9.5 min
