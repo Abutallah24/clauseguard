@@ -1,6 +1,6 @@
 import io
 
-import fitz  # PyMuPDF
+import pymupdf
 import pytest
 from docx import Document
 from PIL import Image, ImageDraw, ImageFont
@@ -29,15 +29,15 @@ def _text_image(text: str) -> bytes:
 
 
 def _text_pdf(text: str) -> bytes:
-    doc = fitz.open()
+    doc = pymupdf.open()
     doc.new_page().insert_text((72, 72), text, fontsize=11)
     return doc.tobytes()
 
 
 def _scanned_pdf(text: str) -> bytes:
-    doc = fitz.open()
+    doc = pymupdf.open()
     page = doc.new_page(width=1400, height=400)
-    page.insert_image(fitz.Rect(0, 0, 1400, 160), stream=_text_image(text))
+    page.insert_image(pymupdf.Rect(0, 0, 1400, 160), stream=_text_image(text))
     return doc.tobytes()
 
 

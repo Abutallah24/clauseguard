@@ -77,11 +77,11 @@ def from_text(text: str) -> str:
 
 
 def from_pdf(data: bytes) -> str:
-    import fitz  # PyMuPDF
+    import pymupdf
 
     _check_size(data, "PDF file")
     try:
-        doc = fitz.open(stream=data, filetype="pdf")
+        doc = pymupdf.open(stream=data, filetype="pdf")
     except Exception as exc:
         raise ExtractionError("This file could not be opened as a PDF.") from exc
     if doc.needs_pass:

@@ -9,7 +9,7 @@ import io
 import textwrap
 from pathlib import Path
 
-import fitz  # PyMuPDF
+import pymupdf
 from docx import Document
 from docx.shared import Pt
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
@@ -30,8 +30,8 @@ def _font(size: int, bold: bool = False):
 
 
 def write_pdf(text: str, path: Path) -> None:
-    doc = fitz.open()
-    rect = fitz.Rect(56, 56, 539, 786)
+    doc = pymupdf.open()
+    rect = pymupdf.Rect(56, 56, 539, 786)
     remaining = text
     while remaining:
         page = doc.new_page()
@@ -39,7 +39,7 @@ def write_pdf(text: str, path: Path) -> None:
         paras, chunk = remaining.split("\n"), []
         while paras:
             trial = "\n".join(chunk + [paras[0]])
-            probe = fitz.open().new_page()
+            probe = pymupdf.open().new_page()
             if probe.insert_textbox(rect, trial, fontsize=10.5, fontname="helv") < 0 and chunk:
                 break
             chunk.append(paras.pop(0))
@@ -84,7 +84,7 @@ def render_pages(text: str) -> list[Image.Image]:
 
 
 def write_scanned_pdf(text: str, path: Path) -> None:
-    doc = fitz.open()
+    doc = pymupdf.open()
     for img in render_pages(text):
         buf = io.BytesIO()
         img.filter(ImageFilter.GaussianBlur(0.4)).save(buf, format="PNG")
