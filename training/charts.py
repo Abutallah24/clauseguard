@@ -16,17 +16,16 @@ import numpy as np  # noqa: E402
 from matplotlib.colors import LinearSegmentedColormap  # noqa: E402
 
 from src.labels import LABELS  # noqa: E402
+from src.models import METRICS_PATH, MODEL_ORDER  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 FIG_DIR = ROOT / "reports" / "figures"
-METRICS_PATH = ROOT / "reports" / "metrics.json"
 
 SURFACE, INK, INK_2, MUTED, GRID, AXIS = "#fcfcfb", "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
 SERIES = ["#2a78d6", "#eb6834", "#1baf7a"]  # slots 1-3, validated all-pairs
 BLUES = LinearSegmentedColormap.from_list(
     "seq_blue", ["#fcfcfb", "#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"]
 )
-MODEL_ORDER = ["tfidf_logreg", "tfidf_svm", "distilbert"]
 
 
 def _style(ax, grid_axis="y"):

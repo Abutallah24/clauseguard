@@ -3,15 +3,15 @@
 from datetime import datetime
 from html import escape
 
-from app.ui.components import CSS_PATH, document_html, findings_html, verdict_html
+from app.ui.components import document_html, findings_or_empty_html, stylesheet, verdict_html
 from src.models import DISPLAY_NAMES
 from src.pipeline import AnalysisResult
 
 
 def build_report(result: AnalysisResult, source_name: str) -> str:
-    css = CSS_PATH.read_text(encoding="utf-8")
+    css = stylesheet()
     generated = datetime.now().strftime("%d %b %Y, %H:%M")
-    findings = findings_html(result) if result.findings else "<p>No risky clauses were found.</p>"
+    findings = findings_or_empty_html(result)
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ClauseGuard report — {escape(source_name)}</title>
@@ -21,7 +21,7 @@ main {{ max-width: 900px; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; display:
 .cg-doc {{ max-height: none; }}
 @media print {{ .cg-panel, .cg-doc {{ box-shadow: none; }} }}
 </style></head>
-<body><main>
+<body class="stApp"><main>
 <header>
   <h1 class="cg-title">ClauseGuard risk report</h1>
   <p class="cg-lede">Source: {escape(source_name)}<br>Model: {escape(DISPLAY_NAMES.get(result.model_key, result.model_key))}<br>Generated: {generated}</p>

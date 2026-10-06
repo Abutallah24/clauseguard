@@ -7,8 +7,7 @@ import streamlit as st
 from app.ui.components import (
     category_summary_html,
     document_html,
-    empty_findings_html,
-    findings_html,
+    findings_or_empty_html,
     html,
     verdict_html,
 )
@@ -17,6 +16,15 @@ from samples.sample_texts import SAMPLES
 from src import extract, models
 from src.extract import ExtractionError
 from src.pipeline import analyze
+
+FRIENDLY_ERROR = "Something went wrong while reading this document. Try another file, or paste the text instead."
+
+
+@st.cache_data(max_entries=16, show_spinner=False)
+def analyze_cached(text: str, model_key: str):
+    """Same text + same model = same result, so switching models back and forth is instant."""
+    return analyze(text, model_key)
+
 
 html('<h1 class="cg-title">Know what you\'re agreeing to.</h1>')
 html(
@@ -36,20 +44,19 @@ def run(source_name: str, get_text) -> None:
         with st.status("Reading the document…", expanded=False) as status:
             text = get_text()
             status.update(label="Checking each clause…")
-            result = analyze(text, model_key)
+            result = analyze_cached(text, model_key)
             status.update(label="Done", state="complete")
     except ExtractionError as exc:
         st.error(str(exc))
         return
     except Exception:  # anything unexpected: friendly message instead of a traceback
-        st.error("Something went wrong while reading this document. Try another file, or paste the text instead.")
+        st.error(FRIENDLY_ERROR)
         return
     if not result.clauses:
         st.warning("The text was read, but it has no full sentences to check. Try a longer document.")
         return
     st.session_state["result"] = result
     st.session_state["source_name"] = source_name
-    st.session_state["truncated"] = len(text) >= extract.MAX_TEXT_CHARS
 
 
 # ---------- samples ----------
@@ -93,7 +100,7 @@ with tab_images:
         run(f"{len(images)} image(s)", lambda: extract.from_images([i.getvalue() for i in images]))
 
 with tab_camera:
-    st.caption("Hold the page flat, fill the frame and avoid shadows. On a phone, open the app's Network URL.")
+    st.caption("Hold the page flat, fill the frame and avoid shadows. On a phone, open the app over HTTPS (see README).")
     use_camera = st.toggle("Turn on camera", key="camera_on")
     if use_camera:
         shot = st.camera_input("Take a photo of the page")
@@ -119,15 +126,19 @@ if result is None:
 
 model_key = st.session_state.get("model_key")
 if model_key and result.model_key != model_key:  # the user switched model: re-check the same text
-    with st.spinner(f"Re-checking with {models.DISPLAY_NAMES[model_key]}…"):
-        result = analyze(result.text, model_key)
+    try:
+        with st.spinner(f"Re-checking with {models.DISPLAY_NAMES[model_key]}…"):
+            result = analyze_cached(result.text, model_key)
+    except Exception:
+        st.error(FRIENDLY_ERROR)
+        st.stop()
     st.session_state["result"] = result
 
 st.divider()
 source = st.session_state.get("source_name", "Document")
 html(f'<h2 class="cg-h2" style="margin-top:.5rem">Report for {escape(source)}</h2>')
 html(f'<p class="cg-note" style="margin:-.4rem 0 1rem">Checked with {escape(models.DISPLAY_NAMES[result.model_key])}</p>')
-if st.session_state.get("truncated"):
+if len(result.text) >= extract.MAX_TEXT_CHARS:
     st.warning(f"This document is very long, so only the first {extract.MAX_TEXT_CHARS:,} characters were checked.")
 
 left, right = st.columns([1, 1.9], gap="large")
@@ -136,9 +147,13 @@ with left:
     st.write("")
     html(category_summary_html(result))
     st.write("")
+    report_key = (id(result), source)  # build the HTML once per result, not on every rerun
+    if st.session_state.get("report_key") != report_key:
+        st.session_state["report_key"] = report_key
+        st.session_state["report_html"] = build_report(result, source)
     st.download_button(
         "Download report (HTML)",
-        data=build_report(result, source),
+        data=st.session_state["report_html"],
         file_name="clauseguard_report.html",
         mime="text/html",
         type="primary",
@@ -149,7 +164,7 @@ with right:
     html(document_html(result))
 
 html('<h2 class="cg-h2">Why these clauses are risky</h2>')
-html(findings_html(result) if result.findings else empty_findings_html())
+html(findings_or_empty_html(result))
 
 with st.expander("See the text we extracted"):
     st.text(result.text[:20000] + ("\n…" if len(result.text) > 20000 else ""))

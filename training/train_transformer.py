@@ -72,7 +72,6 @@ def main() -> None:
     args = parser.parse_args()
 
     torch.manual_seed(SEED)
-    torch.set_num_threads(max(1, torch.get_num_threads()))
     train, val, test = load_split("train"), load_split("validation"), load_split("test")
     x_train, y_train = expand_multilabel(train)
 

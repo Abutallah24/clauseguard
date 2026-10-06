@@ -14,10 +14,12 @@ from urllib.parse import urljoin, urlparse
 
 import numpy as np
 import requests
+import wordninja
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 MAX_FILE_BYTES = 15 * 1024 * 1024  # 15 MB per uploaded file
 MAX_IMAGES = 20
+PASTE_HINT = "Copy the text and use 'Paste text' instead."
 MAX_PDF_PAGES = 60  # keeps OCR of scanned PDFs to a few minutes at most
 MAX_TEXT_CHARS = 200_000
 MAX_URL_BYTES = 5 * 1024 * 1024
@@ -63,8 +65,6 @@ _LETTER_RUN = re.compile(r"[A-Za-z]{%d,}" % MERGED_WORD_MIN)
 def _fix_merged_words(line: str) -> str:
     """OCR on small or blurry photos often drops spaces ("theTermsofService").
     Long letter-only runs are re-split with a word-frequency dictionary; real long words stay intact."""
-    import wordninja
-
     def split(match: re.Match) -> str:
         parts = wordninja.split(match.group(0))
         return " ".join(parts) if parts else match.group(0)
@@ -137,11 +137,8 @@ def from_docx(data: bytes) -> str:
     parts = [p.text for p in doc.paragraphs]
     for table in doc.tables:
         for row in table.rows:
-            seen = set()
-            for cell in row.cells:  # merged cells repeat, so de-duplicate per row
-                if cell.text and cell.text not in seen:
-                    seen.add(cell.text)
-                    parts.append(cell.text)
+            # merged cells repeat their text, so keep each distinct cell text once per row
+            parts.extend(dict.fromkeys(cell.text for cell in row.cells if cell.text))
     return _finish("\n".join(parts), "No text was found in this Word document.")
 
 
@@ -190,15 +187,16 @@ def _ensure_public_http_url(url: str) -> str:
 
 
 def _decode_html(body: bytes, declared: str | None) -> str:
-    """Prefer UTF-8 (most of the web); fall back to the declared charset only if UTF-8 fails.
+    """Prefer UTF-8 (most of the web), then the declared charset, then latin-1.
     requests declares ISO-8859-1 whenever the server omits a charset, which garbles UTF-8 pages."""
     try:
         return body.decode("utf-8")
     except UnicodeDecodeError:
-        try:
-            return body.decode(declared or "latin-1", errors="replace")
-        except LookupError:  # unknown charset name sent by the server
-            return body.decode("latin-1", errors="replace")
+        pass
+    try:
+        return body.decode(declared or "latin-1", errors="replace")
+    except LookupError:  # unknown charset name sent by the server
+        return body.decode("latin-1", errors="replace")
 
 
 _NON_WEB_SCHEME = re.compile(r"^(javascript|data|file|mailto|ftp|about|vbscript|blob):", re.IGNORECASE)
@@ -235,17 +233,17 @@ def from_url(url: str) -> str:
 def _read_body(resp) -> bytes:
     """Check the status and download the body with a size cap and an overall deadline."""
     if resp.status_code in (401, 403, 429):
-            raise ExtractionError("This website blocked automatic reading. Copy the text and use 'Paste text' instead.")
+        raise ExtractionError(f"This website blocked automatic reading. {PASTE_HINT}")
     if resp.status_code >= 400:
-        raise ExtractionError(f"The website returned an error (HTTP {resp.status_code}). Check the link, or copy the text and use 'Paste text'.")
+        raise ExtractionError(f"The website returned an error (HTTP {resp.status_code}). Check the link. {PASTE_HINT}")
     chunks, size, start = [], 0, time.monotonic()
     for chunk in resp.iter_content(64 * 1024):
         chunks.append(chunk)
         size += len(chunk)
         if size > MAX_URL_BYTES:
-            raise ExtractionError("That page is too large to analyze. Copy the terms section and use 'Paste text' instead.")
+            raise ExtractionError(f"That page is too large to analyze. {PASTE_HINT}")
         if time.monotonic() - start > URL_DEADLINE:
-            raise ExtractionError("The website took too long to respond. Try again, or copy the text and use 'Paste text'.")
+            raise ExtractionError(f"The website took too long to respond. Try again later. {PASTE_HINT}")
     return b"".join(chunks)
 
 
@@ -261,5 +259,5 @@ def _page_text(url: str, resp, body: bytes) -> str:
     return _finish(
         text,
         "No terms text could be found on that page (it may need JavaScript). "
-        "Copy the text and use 'Paste text' instead.",
+        + PASTE_HINT,
     )

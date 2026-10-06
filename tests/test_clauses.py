@@ -77,3 +77,13 @@ def test_wrapped_line_ending_in_preposition_is_joined():
         "All claims will be settled by binding arbitration under The rules of the ICC.",
         "You waive your right to a jury trial.",
     ]
+
+
+def test_abbreviation_inside_a_word_still_ends_the_sentence():
+    text = "You must pass the eligibility test. We may cancel your booking at any time."
+    assert len(split_clauses(text)) == 2
+
+
+def test_abbreviation_before_capital_does_not_split():
+    text = "Payments are processed by Stripe Inc. Ltd. and Rs. 500 is charged as a convenience fee per order."
+    assert len(split_clauses(text)) == 1

@@ -6,15 +6,32 @@ from pathlib import Path
 
 import numpy as np
 
+from src.labels import LABELS
+
 ROOT = Path(__file__).resolve().parents[1]
 MODELS_DIR = ROOT / "models"
 METRICS_PATH = ROOT / "reports" / "metrics.json"
 
+# One place for model keys, their order (charts, tables, report) and their names (must match training/).
+MODEL_ORDER = ["tfidf_logreg", "tfidf_svm", "distilbert"]
 DISPLAY_NAMES = {
-    "distilbert": "DistilBERT (deep learning)",
-    "tfidf_svm": "TF-IDF + Linear SVM",
     "tfidf_logreg": "TF-IDF + Logistic Regression",
+    "tfidf_svm": "TF-IDF + Linear SVM",
+    "distilbert": "DistilBERT (fine-tuned)",
 }
+N_CLASSES = len(LABELS)
+
+
+@lru_cache(maxsize=1)
+def _metrics_for(mtime: float) -> dict:
+    return json.loads(METRICS_PATH.read_text())
+
+
+def load_metrics() -> dict | None:
+    """reports/metrics.json, parsed once and re-read only when the file changes."""
+    if not METRICS_PATH.exists():
+        return None
+    return _metrics_for(METRICS_PATH.stat().st_mtime)
 
 
 def _exists(key: str) -> bool:
@@ -25,9 +42,10 @@ def _exists(key: str) -> bool:
 
 def available_models() -> list[str]:
     """Model keys that are trained and on disk, best (by validation macro-F1) first."""
-    keys = [k for k in DISPLAY_NAMES if _exists(k)]
-    if METRICS_PATH.exists():
-        scores = {k: v.get("validation_macro_f1", 0) for k, v in json.loads(METRICS_PATH.read_text())["models"].items()}
+    keys = [k for k in MODEL_ORDER if _exists(k)]
+    metrics = load_metrics()
+    if metrics:
+        scores = {k: v.get("validation_macro_f1", 0) for k, v in metrics["models"].items()}
         keys.sort(key=lambda k: scores.get(k, 0), reverse=True)
     return keys
 
@@ -41,7 +59,7 @@ class _SklearnModel:
     def predict_proba(self, texts: list[str]) -> np.ndarray:
         proba = self.pipeline.predict_proba(texts)
         # classes_ may not be 0..8 in order; map columns onto label ids.
-        full = np.zeros((len(texts), 9))
+        full = np.zeros((len(texts), N_CLASSES))
         full[:, self.pipeline.classes_] = proba
         return full
 
@@ -64,7 +82,7 @@ class _TransformerModel:
                 enc = self.tokenizer(texts[i:i + self.BATCH], truncation=True, max_length=128,
                                      padding=True, return_tensors="pt")
                 out.append(self.torch.softmax(self.model(**enc).logits, dim=-1).numpy())
-        return np.concatenate(out) if out else np.zeros((0, 9))
+        return np.concatenate(out) if out else np.zeros((0, N_CLASSES))
 
 
 @lru_cache(maxsize=3)

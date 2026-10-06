@@ -1,5 +1,7 @@
 """HTML building blocks for the Streamlit UI. All user text is escaped before it is rendered."""
 
+import math
+from functools import lru_cache
 from html import escape
 from pathlib import Path
 
@@ -7,20 +9,20 @@ import streamlit as st
 
 from src.labels import ALL_CATEGORY_INFO
 from src.pipeline import AnalysisResult
+from src.risk import LOW_MAX, MEDIUM_MAX
 
 CSS_PATH = Path(__file__).with_name("style.css")
 LEVEL_TEXT = {"high": "High risk", "medium": "Medium risk", "low": "Low risk"}
 BAR_COLOR = {"high": "var(--high)", "medium": "var(--medium)", "low": "var(--low)"}
 
-LOGO_SVG = """<svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true">
-<path d="M16 2.5 4.5 7v8.2c0 7 4.9 12.6 11.5 14.3 6.6-1.7 11.5-7.3 11.5-14.3V7L16 2.5Z" fill="#3a3fd1"/>
-<path d="M10 11.5h12M10 15.5h12M10 19.5h7" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-<path d="M19.5 20.5 22 23l4-4.5" stroke="#ffd88a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-</svg>"""
+@lru_cache(maxsize=1)
+def stylesheet() -> str:
+    """The app's CSS, read from disk once per process (also embedded in the downloadable report)."""
+    return CSS_PATH.read_text(encoding="utf-8")
 
 
 def inject_css() -> None:
-    st.markdown(f"<style>{CSS_PATH.read_text(encoding='utf-8')}</style>", unsafe_allow_html=True)
+    st.markdown(f"<style>{stylesheet()}</style>", unsafe_allow_html=True)
 
 
 def html(markup: str) -> None:
@@ -37,7 +39,11 @@ def level_for(risk: float) -> str:
 
 
 def group_findings(result: AnalysisResult) -> list[dict]:
-    """One entry per risky clause (a clause can have several issues), most severe first."""
+    """One entry per risky clause (a clause can have several issues), most severe first.
+    Computed once per result and memoised on it, since several renderers need it."""
+    cached = getattr(result, "_groups", None)
+    if cached is not None:
+        return cached
     groups: dict[str, dict] = {}
     for f in result.findings:
         g = groups.setdefault(f.clause, {"clause": f.clause, "issues": [], "risk": 0.0})
@@ -46,28 +52,26 @@ def group_findings(result: AnalysisResult) -> list[dict]:
     ordered = sorted(groups.values(), key=lambda g: g["risk"], reverse=True)
     for n, g in enumerate(ordered, start=1):
         g["n"], g["level"] = n, level_for(g["risk"])
+    result._groups = ordered
     return ordered
 
 
 def gauge_svg(score: int, level: str) -> str:
     """Semicircle gauge: grey track with Low/Medium/High zone ticks and a coloured value arc."""
-    import math
-
     cx, cy, r = 110, 105, 88
 
-    def point(value: float) -> tuple[float, float]:
+    def point(value: float, radius: float = r) -> tuple[float, float]:
         angle = math.pi * (1 - value / 100)  # 0 -> left end, 100 -> right end
-        return cx + r * math.cos(angle), cy - r * math.sin(angle)
+        return cx + radius * math.cos(angle), cy - radius * math.sin(angle)
 
     def arc(start: float, end: float) -> str:
         (x1, y1), (x2, y2) = point(start), point(end)
         return f"M{x1:.1f},{y1:.1f} A{r},{r} 0 0 1 {x2:.1f},{y2:.1f}"
 
-    ticks = "".join(
-        f'<line x1="{point(v)[0]:.1f}" y1="{point(v)[1]:.1f}" '
-        f'x2="{cx + (r + 12) * math.cos(math.pi * (1 - v / 100)):.1f}" '
-        f'y2="{cy - (r + 12) * math.sin(math.pi * (1 - v / 100)):.1f}" stroke="#c3cbd6" stroke-width="2"/>'
-        for v in (30, 60)
+    ticks = "".join(  # zone boundaries: Low|Medium and Medium|High
+        '<line x1="{:.1f}" y1="{:.1f}" x2="{:.1f}" y2="{:.1f}" stroke="#c3cbd6" stroke-width="2"/>'.format(
+            *point(v), *point(v, r + 12))
+        for v in (LOW_MAX + 1, MEDIUM_MAX)
     )
     value = arc(0, max(score, 0.5)) if score > 0 else ""
     return f"""<svg viewBox="0 0 220 124" class="cg-gauge" role="img" aria-label="Risk score {score} out of 100, {LEVEL_TEXT[level]}">
@@ -126,8 +130,8 @@ def document_html(result: AnalysisResult) -> str:
             )
         else:
             paragraphs.append(f"<p>{escape(clause)}</p>")
-    legend = ('<div class="cg-legend" aria-hidden="true"><span class="high">High risk</span>'
-              '<span class="medium">Medium risk</span><span class="low">Low risk</span></div>')
+    legend = ('<div class="cg-legend" aria-hidden="true">'
+              + "".join(f'<span class="{lvl}">{text}</span>' for lvl, text in LEVEL_TEXT.items()) + "</div>")
     return f'{legend}<div class="cg-doc" tabindex="0" aria-label="Document with risky clauses highlighted">{"".join(paragraphs)}</div>'
 
 
@@ -149,6 +153,10 @@ def findings_html(result: AnalysisResult) -> str:
             f'<div><blockquote>{escape(g["clause"])}</blockquote>{"".join(issues)}</div></article>'
         )
     return f'<div class="cg-panel" style="padding-top:.2rem;padding-bottom:.2rem">{"".join(items)}</div>'
+
+
+def findings_or_empty_html(result: AnalysisResult) -> str:
+    return findings_html(result) if result.findings else empty_findings_html()
 
 
 def empty_findings_html() -> str:

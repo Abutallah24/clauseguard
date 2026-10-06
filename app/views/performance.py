@@ -7,9 +7,10 @@ from pathlib import Path
 import streamlit as st
 
 from app.ui.components import html
+from src import models
+from src.labels import LABELS
 
 ROOT = Path(__file__).resolve().parents[2]
-METRICS = ROOT / "reports" / "metrics.json"
 EDA = ROOT / "reports" / "eda.json"
 FIGURES = ROOT / "reports" / "figures"
 
@@ -20,13 +21,13 @@ html(
     "which the training scripts write.</p>"
 )
 
-if not METRICS.exists():
+metrics = models.load_metrics()
+if not metrics:
     st.info("No metrics yet. Run the training scripts first (see README).")
     st.stop()
 
-metrics = json.loads(METRICS.read_text())
 best = metrics["best_model"]
-order = [k for k in ("tfidf_logreg", "tfidf_svm", "distilbert") if k in metrics["models"]]
+order = [k for k in models.MODEL_ORDER if k in metrics["models"]]
 
 rows = []
 for key in order:
@@ -87,8 +88,7 @@ with st.expander("Per-class precision, recall and F1"):
     for key in order:
         m = metrics["models"][key]
         st.markdown(f"**{m['name']}**")
-        table = {name: v for name, v in m["per_class"].items() if isinstance(v, dict) and "support" in v
-                 and name not in ("macro avg", "weighted avg", "micro avg")}
+        table = {name: m["per_class"][name] for name in LABELS}
         st.dataframe(
             {"Class": list(table), "Precision": [round(v["precision"], 3) for v in table.values()],
              "Recall": [round(v["recall"], 3) for v in table.values()],

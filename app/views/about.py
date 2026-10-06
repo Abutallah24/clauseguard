@@ -2,7 +2,7 @@
 
 from app.ui.components import html
 from src.labels import CATEGORY_INFO, RULE_CATEGORY_INFO
-from src.risk import SCORE_SCALE
+from src.risk import LOW_MAX, MEDIUM_MAX, SCORE_SCALE
 
 html('<h1 class="cg-title">How ClauseGuard works</h1>')
 html(
@@ -26,16 +26,14 @@ html(
     "<b>severity of its type</b> × <b>model confidence</b>. The document score is</p>"
     f'<p style="font-size:1.15rem;margin:0 0 .6rem"><b>score = 100 × (1 − e<sup>−(sum of risks) / {SCORE_SCALE}</sup>)</b></p>'
     '<p class="cg-note" style="margin:0">Every extra risky clause raises the score, but by less each time, so it never '
-    "goes past 100. 0–29 is Low, 30–60 Medium and 61–100 High.</p></div>"
+    f"goes past 100. 0–{LOW_MAX} is Low, {LOW_MAX + 1}–{MEDIUM_MAX} Medium and {MEDIUM_MAX + 1}–100 High.</p></div>"
 )
 
 html('<h2 class="cg-h2">What it looks for</h2>')
 rows = "".join(
-    f'<tr><td>{name}</td><td>{info["severity"]:.2f}</td><td style="text-align:left">{info["short"]}</td><td>AI model</td></tr>'
-    for name, info in CATEGORY_INFO.items()
-) + "".join(
-    f'<tr><td>{name}</td><td>{info["severity"]:.2f}</td><td style="text-align:left">{info["short"]}</td><td>Rule check</td></tr>'
-    for name, info in RULE_CATEGORY_INFO.items()
+    f'<tr><td>{name}</td><td>{info["severity"]:.2f}</td><td style="text-align:left">{info["short"]}</td><td>{source}</td></tr>'
+    for source, categories in (("AI model", CATEGORY_INFO), ("Rule check", RULE_CATEGORY_INFO))
+    for name, info in categories.items()
 )
 html(
     '<div class="cg-table-wrap"><table class="cg-table"><thead><tr><th>Clause type</th><th>Severity</th>'

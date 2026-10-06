@@ -15,6 +15,8 @@ from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
 from src.labels import LABELS
+from src.models import MODEL_ORDER
+from src.risk import LOW_MAX, MEDIUM_MAX, SCORE_SCALE
 
 ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / "reports"
@@ -25,7 +27,6 @@ OUT = REPORTS / "ClauseGuard_Report.docx"
 INK = RGBColor(0x0D, 0x25, 0x3D)
 INK_2 = RGBColor(0x3C, 0x4F, 0x66)
 ACCENT = RGBColor(0x3A, 0x3F, 0xD1)
-ORDER = ["tfidf_logreg", "tfidf_svm", "distilbert"]
 
 
 # ---------- helpers ----------
@@ -132,7 +133,7 @@ def build() -> None:
     metrics = json.loads((REPORTS / "metrics.json").read_text())
     eda = json.loads((REPORTS / "eda.json").read_text())
     models = metrics["models"]
-    keys = [k for k in ORDER if k in models]
+    keys = [k for k in MODEL_ORDER if k in models]
     best_key = metrics["best_model"]
     best = models[best_key]
     sizes = eda["split_sizes"]
@@ -214,7 +215,8 @@ def build() -> None:
                  "students often meet (auto-renewal, hidden fees, data sharing, bond / lock-in, deposit forfeiture), "
                  "always labelled separately from model predictions.", False)])
     bullet(doc, [("Risk score: ", True), ("each finding contributes risk = severity of its type × model confidence; "
-                 "score = 100 × (1 − e^(−Σ risk / 2.5)), giving Low (0–29), Medium (30–60) or High (61–100).", False)])
+                 f"score = 100 × (1 − e^(−Σ risk / {SCORE_SCALE})), giving Low (0–{LOW_MAX}), "
+                 f"Medium ({LOW_MAX + 1}–{MEDIUM_MAX}) or High ({MEDIUM_MAX + 1}–100).", False)])
 
     heading(doc, "4. Results")
     para(doc, "All metrics are on the official test split, which was not used for training or model selection.",

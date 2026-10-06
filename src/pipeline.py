@@ -23,10 +23,6 @@ class AnalysisResult:
     model_key: str
     counts: dict[str, int] = field(default_factory=dict)
 
-    @property
-    def risky_clause_count(self) -> int:
-        return len({f.clause for f in self.findings})
-
 
 def analyze(text: str, model_key: str | None = None) -> AnalysisResult:
     model_key = model_key or models.available_models()[0]

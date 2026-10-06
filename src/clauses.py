@@ -18,9 +18,12 @@ _DOT = "․"  # placeholder for protected dots
 _SENTENCE_END = re.compile(r"(?<=[.!?])[\"')\]]?\s+(?=[A-Z0-9\"'(])")
 
 
+# \b stops "st." matching inside "test." and "co." inside "disco."
+_ABBREVIATION_RE = re.compile(r"\b(?:" + "|".join(map(re.escape, _ABBREVIATIONS)) + ")", re.IGNORECASE)
+
+
 def _protect(text: str) -> str:
-    for abbr in _ABBREVIATIONS:
-        text = re.sub(re.escape(abbr), abbr.replace(".", _DOT), text, flags=re.IGNORECASE)
+    text = _ABBREVIATION_RE.sub(lambda m: m.group(0).replace(".", _DOT), text)
     # A leading list number such as "2." or "3.1." is not a sentence end.
     text = re.sub(r"^(\s*\d+(?:\.\d+)*)\.", lambda m: m.group(1) + _DOT, text)
     # Decimals such as 2.5 or 1.2.3 section numbers inside a sentence.
@@ -28,8 +31,6 @@ def _protect(text: str) -> str:
 
 
 HEADING_MAX_CHARS = 60
-
-
 HEADING_MAX_WORDS = 8
 _BULLET = re.compile(r"^\s*[-•*▪●]\s+")
 _FUNCTION_WORDS = {"a", "an", "and", "as", "at", "by", "for", "from", "in", "into", "of", "on", "or", "the",
