@@ -79,7 +79,9 @@ def _ocr_image(img: Image.Image) -> str:
     elif img.width < OCR_MIN_WIDTH:  # small text: upscale so the recogniser sees word gaps
         scale = min(2.0, OCR_MIN_WIDTH / img.width)
         img = img.resize((int(img.width * scale), int(img.height * scale)), Image.LANCZOS)
-    result, _ = _ocr_engine()(np.array(img))
+    # use_cls=False: pages are already upright (EXIF rotation applied above); the per-line direction
+    # classifier misfires on clean text, flipping lines "upside down" and garbling them.
+    result, _ = _ocr_engine()(np.array(img), use_cls=False)
     if not result:
         return ""
     # result rows: [box, text, score]; group boxes into lines by their vertical position.

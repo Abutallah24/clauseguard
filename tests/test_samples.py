@@ -46,3 +46,10 @@ def test_scanned_rental_agreement_is_high_risk():
     result = analyze(extract.from_pdf(_read("rental_agreement_scanned.pdf")), "tfidf_logreg")
     assert result.label in ("Medium", "High")
     assert "Deposit forfeiture" in result.counts
+
+
+def test_camera_test_page_reads_every_line():
+    # RapidOCR's text-direction classifier used to flip some lines upside down and drop them.
+    text = extract.from_images([_read("camera_test_page.png")]).lower()
+    assert "your membership starts on the date you sign up" in text
+    assert "automatically renew every month" in text
