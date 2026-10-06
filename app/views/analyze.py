@@ -131,7 +131,7 @@ with left:
         use_container_width=True,
     )
 with right:
-    html('<div class="cg-note" style="margin-bottom:.2rem">The document, with risky clauses marked</div>')
+    html('<h3 class="cg-h3">The document, with risky clauses marked</h3>')
     html(document_html(result))
 
 html('<h2 class="cg-h2">Why these clauses are risky</h2>')

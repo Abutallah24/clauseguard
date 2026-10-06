@@ -95,7 +95,7 @@ def _ocr_image(img: Image.Image) -> str:
 # ---------- public extractors ----------
 
 def from_text(text: str) -> str:
-    return _finish(text or "", "Please paste some text to analyse.")
+    return _finish(text or "", "Please paste some text to analyze.")
 
 
 def from_pdf(data: bytes) -> str:
@@ -211,13 +211,13 @@ def from_url(url: str) -> str:
         if resp.status_code in (401, 403, 429):
             raise ExtractionError("This website blocked automatic reading. Copy the text and use 'Paste text' instead.")
         if resp.status_code >= 400:
-            raise ExtractionError(f"The website returned an error (HTTP {resp.status_code}).")
+            raise ExtractionError(f"The website returned an error (HTTP {resp.status_code}). Check the link, or copy the text and use 'Paste text'.")
 
         body = b""
         for chunk in resp.iter_content(64 * 1024):
             body += chunk
             if len(body) > MAX_URL_BYTES:
-                raise ExtractionError("That page is too large to analyse.")
+                raise ExtractionError("That page is too large to analyze. Copy the terms section and use 'Paste text' instead.")
     except requests.RequestException as exc:
         raise ExtractionError("Could not reach that website. Check the link and your internet connection.") from exc
 

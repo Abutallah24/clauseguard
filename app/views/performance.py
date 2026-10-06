@@ -36,7 +36,7 @@ for key in order:
     minutes = m.get("train_seconds", 0) / 60
     train_time = f"{minutes:.1f} min" if minutes >= 1 else f"{m.get('train_seconds', 0):.0f} s"
     rows.append(
-        f'<tr class="{"best" if key == best else ""}"><td>{escape(m["name"])}{" ★" if key == best else ""}</td>'
+        f'<tr class="{"best" if key == best else ""}"><td>{escape(m["name"])}{' <span class="cg-tag ai">Best</span>' if key == best else ""}</td>'
         + "".join(f"<td>{v:.3f}</td>" for v in cells) + f"<td>{train_time}</td></tr>"
     )
 html(
@@ -45,7 +45,7 @@ html(
     f'<th>Fair vs unfair F1</th><th>Training time</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
 )
 html(
-    '<p class="cg-note" style="margin-top:.6rem">★ = model with the best validation macro F1, used by default in the app. '
+    '<p class="cg-note" style="margin-top:.6rem">Best = model with the best validation macro F1, used by default in the app. '
     "Macro F1 averages all 9 classes equally, so rare clause types count as much as common ones — that is why it is "
     "lower than accuracy, which is inflated by the ~90% of sentences that are fair.</p>"
 )

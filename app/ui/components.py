@@ -84,17 +84,16 @@ def verdict_html(result: AnalysisResult) -> str:
     level = result.label.lower()
     groups = group_findings(result)
     high = sum(1 for g in groups if g["level"] == "high")
+    flagged = len(groups)
+    summary = (f"{flagged} of {len(result.clauses)} clauses flagged, {high} of them high risk."
+               if flagged else f"None of the {len(result.clauses)} clauses were flagged.")
     return f"""
-<div class="cg-panel cg-verdict" role="region" aria-label="Risk score">
-  <div class="cg-note">Document risk score</div>
+<section class="cg-panel cg-verdict" aria-labelledby="cg-score-h">
+  <h3 class="cg-h3" id="cg-score-h">Risk score</h3>
   {gauge_svg(result.score, level)}
   <span class="cg-pill {level}">{escape(result.label)} risk</span>
-  <div class="cg-facts">
-    <div class="cg-fact"><b>{len(result.clauses)}</b><span>clauses read</span></div>
-    <div class="cg-fact"><b>{len(groups)}</b><span>flagged</span></div>
-    <div class="cg-fact"><b>{high}</b><span>high risk</span></div>
-  </div>
-</div>"""
+  <p class="cg-summary">{summary}</p>
+</section>"""
 
 
 def category_summary_html(result: AnalysisResult) -> str:
@@ -109,8 +108,8 @@ def category_summary_html(result: AnalysisResult) -> str:
             f'<div class="cg-cat"><span>{escape(category)}</span><span class="count">{count}</span>'
             f'<span class="bar"><i style="width:{100 * count / top:.0f}%;background:{BAR_COLOR[level]}"></i></span></div>'
         )
-    return '<div class="cg-panel"><div class="cg-note" style="margin-bottom:.6rem">What was found</div>' \
-           f'<div class="cg-cats">{"".join(rows)}</div></div>'
+    return ('<section class="cg-panel" aria-labelledby="cg-found-h"><h3 class="cg-h3" id="cg-found-h">What was found</h3>'
+            f'<div class="cg-cats">{"".join(rows)}</div></section>')
 
 
 def document_html(result: AnalysisResult) -> str:
@@ -123,7 +122,7 @@ def document_html(result: AnalysisResult) -> str:
             title = escape(", ".join(sorted({f.category for f in g["issues"]})))
             paragraphs.append(
                 f'<p><span class="ref {g["level"]}" aria-hidden="true">{g["n"]}</span>'
-                f'<mark class="{g["level"]}" title="{title}">{escape(clause)}</mark></p>'
+                f'<mark class="{g["level"]}" title="{title}">{escape(clause)}<span class="cg-sr"> ({LEVEL_TEXT[g["level"]]}: {title})</span></mark></p>'
             )
         else:
             paragraphs.append(f"<p>{escape(clause)}</p>")
