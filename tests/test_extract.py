@@ -121,3 +121,17 @@ def test_merged_ocr_words_are_split_and_punctuation_kept():
 def test_normal_words_untouched():
     line = "Your responsibilities regarding confidentiality remain."
     assert extract._fix_merged_words(line) == line
+
+
+def test_decompression_bomb_image_gives_friendly_error(monkeypatch):
+    monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", 1000)  # make a normal image count as a "bomb"
+    with pytest.raises(ExtractionError):
+        extract.from_images([_text_image("tiny")])
+
+
+def test_pdf_page_limit():
+    doc = pymupdf.open()
+    for _ in range(extract.MAX_PDF_PAGES + 1):
+        doc.new_page().insert_text((72, 72), SENTENCE)
+    with pytest.raises(ExtractionError):
+        extract.from_pdf(doc.tobytes())

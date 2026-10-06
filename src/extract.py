@@ -17,6 +17,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 MAX_FILE_BYTES = 15 * 1024 * 1024  # 15 MB per uploaded file
 MAX_IMAGES = 20
+MAX_PDF_PAGES = 60  # keeps OCR of scanned PDFs to a few minutes at most
 MAX_TEXT_CHARS = 200_000
 MAX_URL_BYTES = 5 * 1024 * 1024
 URL_TIMEOUT = 10  # seconds
@@ -107,6 +108,8 @@ def from_pdf(data: bytes) -> str:
         raise ExtractionError("This file could not be opened as a PDF.") from exc
     if doc.needs_pass:
         raise ExtractionError("This PDF is password-protected. Please upload an unlocked copy.")
+    if doc.page_count > MAX_PDF_PAGES:
+        raise ExtractionError(f"This PDF has {doc.page_count} pages. Please upload at most {MAX_PDF_PAGES} pages.")
 
     pages = []
     for page in doc:
@@ -149,6 +152,8 @@ def from_images(images: list[bytes]) -> str:
         try:
             img = Image.open(io.BytesIO(data))
             img.load()
+        except Image.DecompressionBombError as exc:
+            raise ExtractionError(f"Image {i} has too many pixels. Use a normal photo or screenshot.") from exc
         except (UnidentifiedImageError, OSError) as exc:
             raise ExtractionError(f"Image {i} could not be read. Use JPG or PNG.") from exc
         pages.append(_ocr_image(img))
