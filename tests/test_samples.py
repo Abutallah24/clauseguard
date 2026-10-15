@@ -53,3 +53,17 @@ def test_camera_test_page_reads_every_line():
     text = extract.from_images([_read("camera_test_page.png")]).lower()
     assert "your membership starts on the date you sign up" in text
     assert "automatically renew every month" in text
+
+
+def test_small_saved_copy_of_the_page_is_read_with_correct_spacing():
+    # A ~640 px JPEG (e.g. an image saved from a chat) used to come out as "disputes hall ... gotocourt".
+    import io
+
+    from PIL import Image
+
+    page = Image.open(io.BytesIO(_read("camera_test_page.png"))).convert("RGB")
+    small = page.resize((640, round(page.height * 640 / page.width)), Image.LANCZOS)
+    buf = io.BytesIO()
+    small.save(buf, "JPEG", quality=80)
+    text = extract.from_images([buf.getvalue()]).lower()
+    assert "dispute shall be resolved only by arbitration" in text
